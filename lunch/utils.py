@@ -8,7 +8,7 @@ import streamlit as st
 DB_FILE = "lunch.db"
 # 其他檔案路徑
 STORE_CONFIG_FILE = "store_config.txt"
-CUTOFF_DATETIME_FILE = "cutoff_datetime.txt"
+CUTOFF_TIME_FILE = "cutoff_time.txt"
 
 # 輔助函數：連接資料庫 (使用 Streamlit 的單例模式)
 @st.cache_resource
@@ -135,22 +135,22 @@ def load_store_config():
             return f.read().strip()
     return None
 
-# 輔助函數：儲存截止日期和時間到檔案
-def save_cutoff_datetime(dt_obj):
-    with open(CUTOFF_DATETIME_FILE, "w", encoding="utf-8") as f:
-        f.write(dt_obj.isoformat())
+# 輔助函數：儲存截止時間到檔案
+def save_cutoff_time(time_obj):
+    with open(CUTOFF_TIME_FILE, "w", encoding="utf-8") as f:
+        f.write(time_obj.strftime("%H:%M:%S"))
     st.cache_data.clear()
 
-# 輔助函數：從檔案讀取截止日期和時間
-def load_cutoff_datetime():
-    if os.path.exists(CUTOFF_DATETIME_FILE):
-        with open(CUTOFF_DATETIME_FILE, "r", encoding="utf-8") as f:
-            dt_str = f.read().strip()
+# 輔助函數：從檔案讀取截止時間
+def load_cutoff_time():
+    if os.path.exists(CUTOFF_TIME_FILE):
+        with open(CUTOFF_TIME_FILE, "r", encoding="utf-8") as f:
+            time_str = f.read().strip()
             try:
-                return datetime.fromisoformat(dt_str)
+                return time.fromisoformat(time_str)
             except ValueError:
-                return datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
-    return datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
+                return time(12, 0)
+    return time(12, 0)
 
 # 初始化資料庫
 init_db()
