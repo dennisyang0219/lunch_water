@@ -2,8 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import time, datetime
 from utils import (
-    load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db,
-    load_menus_from_db
+    load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db
 )
 
 st.set_page_config(
@@ -30,7 +29,14 @@ if not today_store_name or not all_stores:
     st.info("請聯絡管理員登入後台進行設定。")
 else:
     st.header(f"今日便當店家：{today_store_name}")
-    st.markdown(f"**訂餐截止時間**：`{cutoff_time.strftime('%H:%M')}`")
+    
+    # 判斷時間並顯示友善格式
+    if cutoff_time.hour < 12:
+        cutoff_time_str = f"上午 {cutoff_time.strftime('%H:%M')}"
+    else:
+        cutoff_time_str = f"下午 {cutoff_time.strftime('%H:%M')}"
+        
+    st.markdown(f"**訂餐截止時間**：`{cutoff_time_str}`")
     
     current_time = datetime.now().time()
     
