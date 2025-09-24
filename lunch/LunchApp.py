@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import time, datetime
 from utils import (
     load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db,
-    initialize_database, get_db_connection
+    initialize_database
 )
 
 st.set_page_config(
