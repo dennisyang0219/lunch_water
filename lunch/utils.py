@@ -52,6 +52,7 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+    st.cache_data.clear() # 初始化後清除快取
     st.cache_resource.clear()
 
 # 輔助函數：從資料庫讀取所有訂單
@@ -86,7 +87,7 @@ def save_new_order_to_db(name, store, item, price):
     c.execute("INSERT INTO orders (姓名, 店家, 便當品項, 價格) VALUES (?, ?, ?, ?)",
               (name, store, item, price))
     conn.commit()
-    st.cache_data.clear()
+    st.cache_data.clear() # 資料更新後清除快取
 
 # 輔助函數：更新資料庫中的訂單
 def update_orders_in_db(df):
@@ -94,7 +95,7 @@ def update_orders_in_db(df):
     if conn is None: return
     df.to_sql('orders', conn, if_exists='replace', index=False)
     conn.commit()
-    st.cache_data.clear()
+    st.cache_data.clear() # 資料更新後清除快取
 
 # 輔助函數：從資料庫中刪除訂單
 def delete_orders_from_db(order_ids):
@@ -103,7 +104,7 @@ def delete_orders_from_db(order_ids):
     c = conn.cursor()
     c.execute("DELETE FROM orders WHERE id IN ({})".format(','.join('?'*len(order_ids))), order_ids)
     conn.commit()
-    st.cache_data.clear()
+    st.cache_data.clear() # 資料更新後清除快取
 
 # 輔助函數：更新資料庫中的菜單
 def update_menus_in_db(df):
@@ -111,8 +112,9 @@ def update_menus_in_db(df):
     if conn is None: return
     df.to_sql('menus', conn, if_exists='replace', index=False)
     conn.commit()
-    st.cache_data.clear()
-
+    st.cache_data.clear() # 資料更新後清除快取
+    st.cache_resource.clear()
+    
 # 輔助函數：清除所有訂單
 def clear_all_orders_in_db():
     conn = get_db_connection()
@@ -120,13 +122,13 @@ def clear_all_orders_in_db():
     c = conn.cursor()
     c.execute("DELETE FROM orders")
     conn.commit()
-    st.cache_data.clear()
+    st.cache_data.clear() # 資料更新後清除快取
     
 # 輔助函數：儲存店家設定到檔案
 def save_store_config(store_name):
     with open(STORE_CONFIG_FILE, "w", encoding="utf-8") as f:
         f.write(store_name)
-    st.cache_data.clear()
+    st.cache_data.clear() # 資料更新後清除快取
 
 # 輔助函數：從檔案讀取店家設定
 def load_store_config():
@@ -139,7 +141,7 @@ def load_store_config():
 def save_cutoff_time(time_obj):
     with open(CUTOFF_TIME_FILE, "w", encoding="utf-8") as f:
         f.write(time_obj.strftime("%H:%M:%S"))
-    st.cache_data.clear()
+    st.cache_data.clear() # 資料更新後清除快取
 
 # 輔助函數：從檔案讀取截止時間
 def load_cutoff_time():
