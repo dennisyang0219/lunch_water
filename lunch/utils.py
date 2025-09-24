@@ -109,7 +109,7 @@ def update_menus_in_db(df):
     if conn is None: return
     df.to_sql('menus', conn, if_exists='replace', index=False)
     conn.commit()
-    # 這裡移除不必要的快取清除，因為 data_editor 本身會觸發重新渲染
+    st.cache_data.clear()
 
 # 輔助函數：清除所有訂單
 def clear_all_orders_in_db():
@@ -149,8 +149,3 @@ def load_cutoff_time():
             except ValueError:
                 return time(12, 0)
     return time(12, 0)
-
-# 確保資料庫在應用程式啟動時只初始化一次
-if 'db_initialized' not in st.session_state:
-    initialize_database()
-    st.session_state.db_initialized = True
