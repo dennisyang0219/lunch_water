@@ -14,7 +14,7 @@ st.markdown("---")
 # 使用 session_state 來管理登入狀態
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-    
+
 # 每次都從資料庫載入最新資料，確保狀態同步
 menus_df = load_menus_from_db()
 
@@ -80,18 +80,13 @@ else:
             
             # 如果資料只有一筆且品項為 '無'，則只顯示這一筆
             if len(selected_menu_df) == 1 and selected_menu_df['便當品項'].iloc[0] == '無':
-                df_to_edit = selected_menu_df
+                df_to_edit = pd.DataFrame([{'便當品項': '', '價格': 0}])
             else:
-                # 否則，過濾掉品項為 '無' 的那一行，因為它只是一個佔位符
-                df_to_edit = selected_menu_df[selected_menu_df['便當品項'] != '無']
+                df_to_edit = selected_menu_df[selected_menu_df['便當品項'] != '無'][['便當品項', '價格']].copy()
             
             edited_menus_df = st.data_editor(
                 df_to_edit,
                 column_config={
-                    "id": None,
-                    "店家名稱": None,
-                    "店家地址": "店家地址",
-                    "店家電話": "店家電話",
                     "便當品項": st.column_config.TextColumn("便當品項", help="輸入便當品項"),
                     "價格": st.column_config.NumberColumn("價格", help="輸入價格", format="NT$%d", step=1)
                 },
@@ -104,25 +99,30 @@ else:
             if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
                 # 從資料庫中讀取所有店家資訊，以確保元數據完整
                 full_menus_df = load_menus_from_db()
-
-                # 過濾掉目前正在編輯的店家所有舊的資料
+                
+                # 移除選定店家的所有舊的資料
                 remaining_menus_df = full_menus_df[full_menus_df['店家名稱'] != selected_menu_store]
                 
                 # 處理編輯後的 DataFrame
-                # 確保店家名稱、地址和電話的欄位不遺失
-                edited_menus_df['店家名稱'] = selected_menu_store
-                edited_menus_df['店家地址'] = selected_menu_df['店家地址'].iloc[0] if not selected_menu_df.empty else ''
-                edited_menus_df['店家電話'] = selected_menu_df['店家電話'].iloc[0] if not selected_menu_df.empty else ''
-
-                # 過濾掉空的便當品項，只儲存有內容的品項
                 edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != ''].reset_index(drop=True)
                 
-                # 如果編輯後沒有任何品項，則加入一個「無」的佔位符行
                 if edited_menus_df.empty:
-                    edited_menus_df = pd.DataFrame([{'店家名稱': selected_menu_store, '便當品項': '無', '價格': 0, '店家地址': selected_menu_df['店家地址'].iloc[0] if not selected_menu_df.empty else '', '店家電話': selected_menu_df['店家電話'].iloc[0] if not selected_menu_df.empty else ''}])
+                    new_rows = [{'店家名稱': selected_menu_store, '便當品項': '無', '價格': 0, '店家地址': selected_menu_df['店家地址'].iloc[0], '店家電話': selected_menu_df['店家電話'].iloc[0]}]
+                else:
+                    new_rows = []
+                    for _, row in edited_menus_df.iterrows():
+                        new_rows.append({
+                            '店家名稱': selected_menu_store,
+                            '店家地址': selected_menu_df['店家地址'].iloc[0],
+                            '店家電話': selected_menu_df['店家電話'].iloc[0],
+                            '便當品項': row['便當品項'],
+                            '價格': row['價格']
+                        })
                 
-                # 將剩下的品項和編輯後的品項合併
-                updated_all_menus_df = pd.concat([remaining_menus_df, edited_menus_df], ignore_index=True)
+                new_menus_df = pd.DataFrame(new_rows)
+                
+                # 將剩下的品項和新建立的品項合併
+                updated_all_menus_df = pd.concat([remaining_menus_df, new_menus_df], ignore_index=True)
                 
                 update_menus_in_db(updated_all_menus_df)
                 st.success("✅ 菜單變動已成功儲存！")
