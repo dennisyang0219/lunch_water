@@ -54,13 +54,5 @@ else:
                 # 這裡將價格轉換為整數
                 st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {int(price)}**。")
 
-st.markdown("---")
 
-st.markdown(
-    """
-    <div style="text-align: center; color: gray;">
-        <p>🍱 由 <b>小明</b> 製作</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+
