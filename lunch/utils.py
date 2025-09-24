@@ -1,4 +1,4 @@
-﻿import pandas as pd
+import pandas as pd
 import os
 from datetime import time
 import sqlite3
@@ -13,12 +13,18 @@ CUTOFF_TIME_FILE = "cutoff_time.txt"
 # 輔助函數：連接資料庫 (使用 Streamlit 的單例模式)
 @st.cache_resource
 def get_db_connection():
-    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-    return conn
+    try:
+        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        return conn
+    except Exception as e:
+        st.error(f"無法連線到資料庫: {e}")
+        return None
 
 # 輔助函數：初始化資料庫
 def init_db():
     conn = get_db_connection()
+    if conn is None:
+        return
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS orders (
@@ -43,13 +49,15 @@ def init_db():
         )
     """)
     conn.commit()
-    conn.close() # 這裡可以關閉，因為這是唯一的初始化呼叫
+    conn.close()
     st.cache_resource.clear()
 
 # 輔助函數：從資料庫讀取所有訂單
 @st.cache_data(ttl=60)
 def load_orders_from_db():
     conn = get_db_connection()
+    if conn is None:
+        return pd.DataFrame() # 返回空資料框
     df = pd.read_sql_query("SELECT * FROM orders", conn)
     # 不關閉連接
     if '已付款' in df.columns:
@@ -64,13 +72,19 @@ def load_orders_from_db():
 @st.cache_data(ttl=60)
 def load_menus_from_db():
     conn = get_db_connection()
+    if conn is None:
+        return pd.DataFrame() # 返回空資料框
     df = pd.read_sql_query("SELECT * FROM menus", conn)
     # 不關閉連接
     return df
 
+# 以下為其餘程式碼，請確保與之前提供的版本一致
+# ... (save_new_order_to_db, update_orders_in_db, delete_orders_from_db 等)
+
 # 輔助函數：儲存新的訂單到資料庫
 def save_new_order_to_db(name, store, item, price):
     conn = get_db_connection()
+    if conn is None: return
     c = conn.cursor()
     c.execute("INSERT INTO orders (姓名, 店家, 便當品項, 價格) VALUES (?, ?, ?, ?)",
               (name, store, item, price))
@@ -81,6 +95,7 @@ def save_new_order_to_db(name, store, item, price):
 # 輔助函數：更新資料庫中的訂單
 def update_orders_in_db(df):
     conn = get_db_connection()
+    if conn is None: return
     df.to_sql('orders', conn, if_exists='replace', index=False)
     conn.commit()
     # 不關閉連接
@@ -89,6 +104,7 @@ def update_orders_in_db(df):
 # 輔助函數：從資料庫中刪除訂單
 def delete_orders_from_db(order_ids):
     conn = get_db_connection()
+    if conn is None: return
     c = conn.cursor()
     c.execute("DELETE FROM orders WHERE id IN ({})".format(','.join('?'*len(order_ids))), order_ids)
     conn.commit()
@@ -98,6 +114,7 @@ def delete_orders_from_db(order_ids):
 # 輔助函數：更新資料庫中的菜單
 def update_menus_in_db(df):
     conn = get_db_connection()
+    if conn is None: return
     df.to_sql('menus', conn, if_exists='replace', index=False)
     conn.commit()
     # 不關閉連接
@@ -106,6 +123,7 @@ def update_menus_in_db(df):
 # 輔助函數：清除所有訂單
 def clear_all_orders_in_db():
     conn = get_db_connection()
+    if conn is None: return
     c = conn.cursor()
     c.execute("DELETE FROM orders")
     conn.commit()
