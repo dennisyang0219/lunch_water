@@ -51,8 +51,8 @@ def init_db():
         )
     """)
     conn.commit()
-    conn.close()
-
+    # 這裡移除 conn.close()
+    
 # 輔助函數：從資料庫讀取所有訂單
 @st.cache_data(ttl=60)
 def load_orders_from_db():
