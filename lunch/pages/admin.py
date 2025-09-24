@@ -15,6 +15,10 @@ st.markdown("---")
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+# 確保資料庫已初始化
+if 'db_initialized' not in st.session_state:
+    st.session_state.db_initialized = True
+    
 if not st.session_state.logged_in:
     password = st.text_input("請輸入管理者密碼", type="password", key="login_password")
     if password == "admin123":
@@ -27,14 +31,14 @@ else:
         st.session_state.logged_in = False
         st.rerun()
     
-    tab1, tab2, tab3, tab4 = st.tabs(["🏡 便當店管理", "📋 菜單管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"])
-    
-    # 載入所有店家和菜單資訊
+    # 每次重新執行時都從資料庫載入最新資料
     menus_df = load_menus_from_db()
     if not menus_df.empty:
         menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
     all_store_names = sorted(menus_df['店家名稱'].unique().tolist()) if not menus_df.empty else []
     all_store_names = [name for name in all_store_names if name]
+    
+    tab1, tab2, tab3, tab4 = st.tabs(["🏡 便當店管理", "📋 菜單管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"])
 
     with tab1:
         st.header("🏡 便當店管理")
@@ -48,11 +52,12 @@ else:
                 new_row = pd.DataFrame([{'店家名稱': new_store_name, 
                                         '店家地址': new_store_address,
                                         '店家電話': new_store_phone,
-                                        '便當品項': '', 
+                                        '便當品項': '無', 
                                         '價格': 0}])
                 updated_menus_df = pd.concat([menus_df, new_row], ignore_index=True)
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功新增店家：**{new_store_name}**")
+                # 重新運行應用程式以刷新選單
                 st.rerun()
             else:
                 st.warning("⚠️ 請輸入有效的店家名稱，且店家名稱不能重複。")
@@ -85,15 +90,18 @@ else:
 
         if selected_menu_store:
             selected_menu_df = menus_df[menus_df['店家名稱'] == selected_menu_store].copy()
+            # 移除 '無' 的預設品項
+            selected_menu_df = selected_menu_df[selected_menu_df['便當品項'] != '無']
+            
             edited_menus_df = st.data_editor(
                 selected_menu_df,
                 column_config={
                     "id": None,
                     "店家名稱": None,
-                    "便當品項": st.column_config.TextColumn("便當品項", help="輸入便當品項"),
-                    "價格": st.column_config.NumberColumn("價格", help="輸入價格", format="NT$%d", step=1),
                     "店家地址": "店家地址",
-                    "店家電話": "店家電話"
+                    "店家電話": "店家電話",
+                    "便當品項": st.column_config.TextColumn("便當品項", help="輸入便當品項"),
+                    "價格": st.column_config.NumberColumn("價格", help="輸入價格", format="NT$%d", step=1)
                 },
                 num_rows="dynamic",
                 use_container_width=True,
@@ -102,9 +110,7 @@ else:
             )
             
             if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
-                edited_menus_df['店家名稱'] = edited_menus_df['店家名稱'].apply(
-                    lambda x: selected_menu_store if pd.isna(x) or x == '' else x
-                )
+                edited_menus_df['店家名稱'] = selected_menu_store
                 edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
                 
                 menus_df = menus_df[menus_df['店家名稱'] != selected_menu_store]
