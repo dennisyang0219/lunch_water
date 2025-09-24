@@ -1,4 +1,4 @@
-﻿import streamlit as st
+﻿import streamlit as stimport streamlit as st
 import pandas as pd
 from datetime import datetime
 from utils import load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db
@@ -29,7 +29,7 @@ elif menus_df.empty:
     st.info("目前沒有可訂餐的店家及菜單。請聯繫管理者新增。")
 else:
     # 訂餐表單
-    st.header("1️⃣ 訂餐區")
+    st.header("訂餐區")
     st.write(f"今日店家：**{selected_store_by_admin}**")
     st.write(f"今天的訂餐截止時間為：**{cutoff_time.strftime('%H:%M')}**")
     
@@ -58,4 +58,5 @@ else:
                 st.warning("請選擇便當品項後再送出！")
             else:
                 save_new_order_to_db(name, selected_store_by_admin, selected_item, price)
+                st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {price}**。")
                 st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {price}**。")
