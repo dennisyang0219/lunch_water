@@ -6,17 +6,17 @@ from utils import (
     initialize_database
 )
 
-# 確保資料庫在應用程式啟動時只初始化一次
-if 'db_initialized' not in st.session_state:
-    initialize_database()
-    st.session_state.db_initialized = True
-
 st.set_page_config(
     page_title="便當點餐系統",
     page_icon="🍱",
     layout="centered",
     initial_sidebar_state="expanded"
 )
+
+# 使用 Streamlit 的 session state 來確保資料庫只初始化一次
+if 'db_initialized' not in st.session_state:
+    initialize_database()
+    st.session_state.db_initialized = True
 
 st.title("🍱 便當點餐系統")
 st.markdown("---")
@@ -30,7 +30,7 @@ all_stores = [s for s in all_stores if s] # 移除空字串
 today_store_name = load_store_config()
 cutoff_time = load_cutoff_time()
 
-if not today_store_name or not menus_df.empty:
+if not today_store_name or not all_stores:
     st.warning("⚠️ 管理員尚未設定今日店家，請稍候。")
     st.info("請聯絡管理員登入後台進行設定。")
 else:
