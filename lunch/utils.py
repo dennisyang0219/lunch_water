@@ -90,7 +90,8 @@ def update_orders_in_db(df):
     if conn is None: return
     df.to_sql('orders', conn, if_exists='replace', index=False)
     conn.commit()
-    st.cache_data.clear()
+    # 這裡只清除 orders 的快取
+    load_orders_from_db.clear()
 
 # 輔助函數：從資料庫中刪除訂單
 def delete_orders_from_db(order_ids):
@@ -99,7 +100,8 @@ def delete_orders_from_db(order_ids):
     c = conn.cursor()
     c.execute("DELETE FROM orders WHERE id IN ({})".format(','.join('?'*len(order_ids))), order_ids)
     conn.commit()
-    st.cache_data.clear()
+    # 這裡只清除 orders 的快取
+    load_orders_from_db.clear()
 
 # 輔助函數：更新資料庫中的菜單
 def update_menus_in_db(df):
@@ -107,7 +109,8 @@ def update_menus_in_db(df):
     if conn is None: return
     df.to_sql('menus', conn, if_exists='replace', index=False)
     conn.commit()
-    st.cache_data.clear()
+    # 這裡直接呼叫清空函式來強制快取失效
+    load_menus_from_db.clear()
 
 # 輔助函數：清除所有訂單
 def clear_all_orders_in_db():
@@ -116,15 +119,16 @@ def clear_all_orders_in_db():
     c = conn.cursor()
     c.execute("DELETE FROM orders")
     conn.commit()
-    st.cache_data.clear()
+    # 這裡只清除 orders 的快取
+    load_orders_from_db.clear()
     
 # 輔助函數：儲存店家設定到檔案
 def save_store_config(store_name):
     with open(STORE_CONFIG_FILE, "w", encoding="utf-8") as f:
         f.write(store_name)
-    st.cache_data.clear()
 
 # 輔助函數：從檔案讀取店家設定
+@st.cache_data(ttl=3600)
 def load_store_config():
     if os.path.exists(STORE_CONFIG_FILE):
         with open(STORE_CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -135,9 +139,9 @@ def load_store_config():
 def save_cutoff_time(time_obj):
     with open(CUTOFF_TIME_FILE, "w", encoding="utf-8") as f:
         f.write(time_obj.strftime("%H:%M:%S"))
-    st.cache_data.clear()
 
 # 輔助函數：從檔案讀取截止時間
+@st.cache_data(ttl=3600)
 def load_cutoff_time():
     if os.path.exists(CUTOFF_TIME_FILE):
         with open(CUTOFF_TIME_FILE, "r", encoding="utf-8") as f:
