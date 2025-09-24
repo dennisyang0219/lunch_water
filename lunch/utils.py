@@ -50,10 +50,24 @@ def get_db_connection():
         st.error(f"無法連線到資料庫: {e}")
         return None
 
+# 輔助函數：檢查並重新開啟資料庫連接
+def _check_db_connection():
+    conn = get_db_connection()
+    if conn:
+        try:
+            # 嘗試執行一個簡單的操作來檢查連接是否有效
+            conn.cursor().execute("SELECT 1")
+            return conn
+        except (sqlite3.ProgrammingError, sqlite3.OperationalError):
+            st.cache_resource.clear() # 清除舊的無效連接快取
+            conn = get_db_connection() # 重新建立連接
+            return conn
+    return None
+
 # 輔助函數：從資料庫讀取所有訂單
 @st.cache_data(ttl=60)
 def load_orders_from_db():
-    conn = get_db_connection()
+    conn = _check_db_connection()
     if conn is None:
         return pd.DataFrame()
     df = pd.read_sql_query("SELECT * FROM orders", conn)
@@ -68,7 +82,7 @@ def load_orders_from_db():
 # 輔助函數：從資料庫讀取所有菜單
 @st.cache_data(ttl=60)
 def load_menus_from_db():
-    conn = get_db_connection()
+    conn = _check_db_connection()
     if conn is None:
         return pd.DataFrame()
     df = pd.read_sql_query("SELECT * FROM menus", conn)
@@ -76,7 +90,7 @@ def load_menus_from_db():
 
 # 輔助函數：儲存新的訂單到資料庫
 def save_new_order_to_db(name, store, item, price):
-    conn = get_db_connection()
+    conn = _check_db_connection()
     if conn is None: return
     c = conn.cursor()
     c.execute("INSERT INTO orders (姓名, 店家, 便當品項, 價格) VALUES (?, ?, ?, ?)",
@@ -86,7 +100,7 @@ def save_new_order_to_db(name, store, item, price):
     
 # 輔助函數：更新資料庫中的訂單
 def update_orders_in_db(df):
-    conn = get_db_connection()
+    conn = _check_db_connection()
     if conn is None: return
     df.to_sql('orders', conn, if_exists='replace', index=False)
     conn.commit()
@@ -94,7 +108,7 @@ def update_orders_in_db(df):
 
 # 輔助函數：從資料庫中刪除訂單
 def delete_orders_from_db(order_ids):
-    conn = get_db_connection()
+    conn = _check_db_connection()
     if conn is None: return
     c = conn.cursor()
     c.execute("DELETE FROM orders WHERE id IN ({})".format(','.join('?'*len(order_ids))), order_ids)
@@ -103,17 +117,15 @@ def delete_orders_from_db(order_ids):
 
 # 輔助函數：更新資料庫中的菜單
 def update_menus_in_db(df):
-    conn = get_db_connection()
+    conn = _check_db_connection()
     if conn is None: return
     df.to_sql('menus', conn, if_exists='replace', index=False)
     conn.commit()
-    
-    # 移除 conn.close() 和 PRAGMA，讓 Streamlit 快取管理連接
     load_menus_from_db.clear()
 
 # 輔助函數：清除所有訂單
 def clear_all_orders_in_db():
-    conn = get_db_connection()
+    conn = _check_db_connection()
     if conn is None: return
     c = conn.cursor()
     c.execute("DELETE FROM orders")
