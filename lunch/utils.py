@@ -11,7 +11,7 @@ STORE_CONFIG_FILE = "store_config.txt"
 CUTOFF_TIME_FILE = "cutoff_time.txt"
 
 # 輔助函數：初始化資料庫
-def _initialize_database():
+def initialize_database():
     try:
         conn = sqlite3.connect(DB_FILE, check_same_thread=False)
         c = conn.cursor()
@@ -41,16 +41,13 @@ def _initialize_database():
         """)
         conn.commit()
         conn.close()
-        st.session_state.db_initialized = True
     except Exception as e:
-        st.error(f"資料庫初始化失敗: {e}")
+        # 在純工具函式中不處理 Streamlit 介面，將錯誤拋給上層
+        raise e
 
 # 輔助函數：連接資料庫 (使用 Streamlit 的單例模式)
 @st.cache_resource
 def get_db_connection():
-    if 'db_initialized' not in st.session_state:
-        _initialize_database()
-        
     try:
         conn = sqlite3.connect(DB_FILE, check_same_thread=False)
         return conn
