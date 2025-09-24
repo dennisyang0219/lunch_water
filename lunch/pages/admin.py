@@ -15,6 +15,13 @@ st.markdown("---")
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+# 初始化 menus_df 到 session_state
+if "menus_df" not in st.session_state:
+    st.session_state.menus_df = load_menus_from_db()
+    
+# 更新 menus_df
+st.session_state.menus_df = load_menus_from_db()
+
 if not st.session_state.logged_in:
     password = st.text_input("請輸入管理者密碼", type="password", key="login_password")
     if password == "admin123":
@@ -27,8 +34,7 @@ else:
         st.session_state.logged_in = False
         st.rerun()
     
-    # 每次重新執行時都從資料庫載入最新資料
-    menus_df = load_menus_from_db()
+    menus_df = st.session_state.menus_df
     if not menus_df.empty:
         menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
     all_store_names = sorted(menus_df['店家名稱'].unique().tolist()) if not menus_df.empty else []
@@ -76,7 +82,6 @@ else:
             # 獲取選定店家的所有品項
             selected_menu_df = menus_df[menus_df['店家名稱'] == selected_menu_store].copy()
             
-            # 如果資料只有一筆且品項為 '無'，則只顯示這一筆，否則過濾掉 '無'
             if len(selected_menu_df) == 1 and selected_menu_df['便當品項'].iloc[0] == '無':
                 df_to_edit = selected_menu_df
             else:
@@ -99,12 +104,14 @@ else:
             )
             
             if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
-                all_menus_df = load_menus_from_db()
+                # 從 session_state 獲取所有菜單資料
+                all_menus_df = st.session_state.menus_df
+                
+                # 移除選定店家的所有舊品項
                 remaining_menus_df = all_menus_df[all_menus_df['店家名稱'] != selected_menu_store]
                 
                 # 處理編輯後的 DataFrame
                 edited_menus_df['店家名稱'] = selected_menu_store
-                # 過濾掉空的便當品項，只儲存有內容的品項
                 edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
                 
                 # 如果編輯後沒有任何品項，則加入一個「無」的佔位符行
