@@ -82,7 +82,7 @@ def save_new_order_to_db(name, store, item, price):
     c.execute("INSERT INTO orders (姓名, 店家, 便當品項, 價格) VALUES (?, ?, ?, ?)",
               (name, store, item, price))
     conn.commit()
-    st.cache_data.clear()
+    load_orders_from_db.clear()
 
 # 輔助函數：更新資料庫中的訂單
 def update_orders_in_db(df):
@@ -90,7 +90,6 @@ def update_orders_in_db(df):
     if conn is None: return
     df.to_sql('orders', conn, if_exists='replace', index=False)
     conn.commit()
-    # 這裡只清除 orders 的快取
     load_orders_from_db.clear()
 
 # 輔助函數：從資料庫中刪除訂單
@@ -100,7 +99,6 @@ def delete_orders_from_db(order_ids):
     c = conn.cursor()
     c.execute("DELETE FROM orders WHERE id IN ({})".format(','.join('?'*len(order_ids))), order_ids)
     conn.commit()
-    # 這裡只清除 orders 的快取
     load_orders_from_db.clear()
 
 # 輔助函數：更新資料庫中的菜單
@@ -119,7 +117,6 @@ def clear_all_orders_in_db():
     c = conn.cursor()
     c.execute("DELETE FROM orders")
     conn.commit()
-    # 這裡只清除 orders 的快取
     load_orders_from_db.clear()
     
 # 輔助函數：儲存店家設定到檔案
