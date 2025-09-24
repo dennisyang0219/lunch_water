@@ -108,11 +108,7 @@ def update_menus_in_db(df):
     df.to_sql('menus', conn, if_exists='replace', index=False)
     conn.commit()
     
-    # 這裡強制將資料庫寫入磁碟
-    conn.execute('PRAGMA wal_checkpoint(FULL);')
-    conn.close()
-    
-    # 清除快取以強制重新讀取
+    # 移除 conn.close() 和 PRAGMA，讓 Streamlit 快取管理連接
     load_menus_from_db.clear()
 
 # 輔助函數：清除所有訂單
