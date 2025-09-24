@@ -175,7 +175,7 @@ else:
         
         time_options = {
             "上午 8:50": time(8, 50),
-            "下午 4:00": time(16, 0)
+            "下午 23:00": time(23, 50)
         }
         current_time_str = "上午 8:50" if current_cutoff_time == time(8, 50) else "下午 4:00"
         
