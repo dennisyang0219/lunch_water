@@ -99,13 +99,18 @@ else:
             )
             
             if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
+                # 從 st.session_state 取得所有菜單資料
+                all_menus_df = st.session_state.menus_df
+                
+                # 移除要被編輯的店家的舊菜單
+                remaining_menus_df = all_menus_df[all_menus_df['店家名稱'] != selected_menu_store]
+                
+                # 將編輯後的菜單與剩下的舊菜單合併
                 edited_menus_df['店家名稱'] = selected_menu_store
                 edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
+                updated_all_menus_df = pd.concat([remaining_menus_df, edited_menus_df], ignore_index=True)
                 
-                menus_df = menus_df[menus_df['店家名稱'] != selected_menu_store]
-                updated_menus_df = pd.concat([menus_df, edited_menus_df], ignore_index=True)
-                
-                update_menus_and_db(updated_menus_df)
+                update_menus_and_db(updated_all_menus_df)
                 st.success("✅ 菜單變動已成功儲存！")
         
         st.markdown("---")
