@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from utils import load_store_config, load_cutoff_datetime, load_menus_from_db, save_new_order_to_db
 
+
 st.set_page_config(
     page_title="團體訂便當",
     page_icon="🍱"
