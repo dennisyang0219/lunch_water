@@ -52,7 +52,16 @@ else:
 
                 st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {price}**。")
 
-<div style="text-align: center; color: gray;">
-    <p>  <b>煦哥</b> 製作</p>
-</div>
+st.markdown("---")
+
+# Use st.markdown() with the 'unsafe_allow_html=True' argument
+st.markdown(
+    """
+    <div style="text-align: center; color: gray;">
+        <p>🍱 由 <b>煦哥</b> 製作</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
