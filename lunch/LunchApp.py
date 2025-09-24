@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import time, datetime
 from utils import (
     load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db,
-    initialize_database
+    initialize_database, get_db_connection
 )
 
 st.set_page_config(
@@ -14,10 +14,13 @@ st.set_page_config(
 )
 
 # 確保資料庫在應用程式啟動時只初始化一次
-# 這段程式碼必須在頁面載入之前，且在第一個 Streamlit 指令之後
 if 'db_initialized' not in st.session_state:
-    initialize_database()
-    st.session_state.db_initialized = True
+    try:
+        initialize_database()
+        st.session_state.db_initialized = True
+    except Exception as e:
+        st.error(f"資料庫初始化失敗: {e}")
+        st.stop() # 停止應用程式以避免後續錯誤
 
 st.title("🍱 便當點餐系統")
 st.markdown("---")
