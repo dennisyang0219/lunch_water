@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 from datetime import time
 from utils import (
@@ -14,7 +14,7 @@ st.markdown("---")
 # 密碼驗證
 password = st.text_input("請輸入管理者密碼", type="password")
 
-if password == "admin123":  # 請將 'admin123' 換成你自己的密碼
+if password == "admin603":  # 請將 'admin123' 換成你自己的密碼
     
     # --- 菜單管理區塊 ---
     st.header("📋 菜單管理")
