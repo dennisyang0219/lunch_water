@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 from datetime import datetime
 from utils import load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db
@@ -32,7 +32,9 @@ else:
         item_price_dict = dict(zip(menu_items['便當品項'], menu_items['價格']))
         selected_item = st.selectbox("請選擇便當品項", options=list(item_price_dict.keys()))
         price = item_price_dict.get(selected_item, 0)
-        st.write(f"您選擇的 **{selected_item}** 價格為：**NT$ {price}**")
+        
+        # 這裡將價格轉換為整數，確保不顯示小數點
+        st.write(f"您選擇的 **{selected_item}** 價格為：**NT$ {int(price)}**")
     else:
         selected_item = None
         price = 0
@@ -49,12 +51,16 @@ else:
                 st.warning("請選擇便當品項後再送出！")
             else:
                 save_new_order_to_db(name, selected_store_by_admin, selected_item, price)
+                # 這裡將價格轉換為整數
+                st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {int(price)}**。")
 
-                st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {price}**。")
+st.markdown("---")
 
-
-
-
-
-
-
+st.markdown(
+    """
+    <div style="text-align: center; color: gray;">
+        <p>🍱 由 <b>小明</b> 製作</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
