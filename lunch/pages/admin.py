@@ -4,9 +4,14 @@ from datetime import time
 from utils import (
     load_store_config, save_store_config, load_cutoff_time, save_cutoff_time, 
     load_orders_from_db, update_orders_in_db, clear_all_orders_in_db,
-    delete_orders_from_db, load_menus_from_db, update_menus_in_db
+    delete_orders_from_db, load_menus_from_db, update_menus_in_db, initialize_database
 )
 import os
+
+# 在所有頁面載入之前，確保資料庫已初始化
+if 'db_initialized' not in st.session_state:
+    initialize_database()
+    st.session_state.db_initialized = True
 
 st.title("👨‍💼 管理者後台")
 st.markdown("---")
@@ -15,10 +20,6 @@ st.markdown("---")
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# 確保資料庫已初始化
-if 'db_initialized' not in st.session_state:
-    st.session_state.db_initialized = True
-    
 if not st.session_state.logged_in:
     password = st.text_input("請輸入管理者密碼", type="password", key="login_password")
     if password == "admin123":
@@ -31,7 +32,6 @@ else:
         st.session_state.logged_in = False
         st.rerun()
     
-    # 每次重新執行時都從資料庫載入最新資料
     menus_df = load_menus_from_db()
     if not menus_df.empty:
         menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
@@ -57,7 +57,6 @@ else:
                 updated_menus_df = pd.concat([menus_df, new_row], ignore_index=True)
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功新增店家：**{new_store_name}**")
-                # 重新運行應用程式以刷新選單
                 st.rerun()
             else:
                 st.warning("⚠️ 請輸入有效的店家名稱，且店家名稱不能重複。")
@@ -90,7 +89,6 @@ else:
 
         if selected_menu_store:
             selected_menu_df = menus_df[menus_df['店家名稱'] == selected_menu_store].copy()
-            # 移除 '無' 的預設品項
             selected_menu_df = selected_menu_df[selected_menu_df['便當品項'] != '無']
             
             edited_menus_df = st.data_editor(
