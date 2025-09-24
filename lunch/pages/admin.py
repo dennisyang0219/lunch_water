@@ -17,7 +17,7 @@ if "logged_in" not in st.session_state:
 
 if not st.session_state.logged_in:
     password = st.text_input("請輸入管理者密碼", type="password", key="login_password")
-    if password == "admin123":
+    if password == "admin603":
         st.session_state.logged_in = True
         st.rerun()
     elif password:
@@ -164,6 +164,7 @@ else:
         
         time_options = {
             "上午 8:50": time(8, 50),
+            "下午 11:50": time(23, 50),
             "下午 4:00": time(16, 0)
         }
         current_time_str = "上午 8:50" if current_cutoff_time == time(8, 50) else "下午 4:00"
