@@ -4,14 +4,9 @@ from datetime import time
 from utils import (
     load_store_config, save_store_config, load_cutoff_time, save_cutoff_time, 
     load_orders_from_db, update_orders_in_db, clear_all_orders_in_db,
-    delete_orders_from_db, load_menus_from_db, update_menus_in_db, initialize_database
+    delete_orders_from_db, load_menus_from_db, update_menus_in_db
 )
 import os
-
-# 確保資料庫在所有頁面載入之前，只初始化一次
-if 'db_initialized' not in st.session_state:
-    initialize_database()
-    st.session_state.db_initialized = True
 
 st.title("👨‍💼 管理者後台")
 st.markdown("---")
