@@ -11,44 +11,40 @@ STORE_CONFIG_FILE = "store_config.txt"
 CUTOFF_TIME_FILE = "cutoff_time.txt"
 
 # 輔助函數：初始化資料庫
-def initialize_database():
-    try:
-        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-        c = conn.cursor()
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY,
-                姓名 TEXT NOT NULL,
-                店家 TEXT NOT NULL,
-                便當品項 TEXT NOT NULL,
-                價格 INTEGER NOT NULL,
-                已付款 BOOLEAN DEFAULT FALSE,
-                選取 BOOLEAN DEFAULT FALSE,
-                刪除 BOOLEAN DEFAULT FALSE,
-                備註 TEXT DEFAULT ''
-            )
-        """)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS menus (
-                id INTEGER PRIMARY KEY,
-                店家名稱 TEXT NOT NULL,
-                店家地址 TEXT,
-                店家電話 TEXT,
-                便當品項 TEXT NOT NULL,
-                價格 INTEGER NOT NULL,
-                UNIQUE(店家名稱, 便當品項) ON CONFLICT REPLACE
-            )
-        """)
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        raise e
+def _initialize_database(conn):
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY,
+            姓名 TEXT NOT NULL,
+            店家 TEXT NOT NULL,
+            便當品項 TEXT NOT NULL,
+            價格 INTEGER NOT NULL,
+            已付款 BOOLEAN DEFAULT FALSE,
+            選取 BOOLEAN DEFAULT FALSE,
+            刪除 BOOLEAN DEFAULT FALSE,
+            備註 TEXT DEFAULT ''
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS menus (
+            id INTEGER PRIMARY KEY,
+            店家名稱 TEXT NOT NULL,
+            店家地址 TEXT,
+            店家電話 TEXT,
+            便當品項 TEXT NOT NULL,
+            價格 INTEGER NOT NULL,
+            UNIQUE(店家名稱, 便當品項) ON CONFLICT REPLACE
+        )
+    """)
+    conn.commit()
 
 # 輔助函數：連接資料庫 (使用 Streamlit 的單例模式)
 @st.cache_resource
 def get_db_connection():
     try:
         conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        _initialize_database(conn) # 在這裡呼叫初始化
         return conn
     except Exception as e:
         st.error(f"無法連線到資料庫: {e}")
