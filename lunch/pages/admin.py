@@ -231,11 +231,3 @@ else:
             st.info("目前還沒有人訂餐。")
 
         st.markdown("---")
-        
-        st.header("🗑️ 清除所有訂單")
-        st.warning("⚠️ 此操作會永久刪除所有訂單資料，請謹慎使用。")
-        confirm_clear = st.checkbox("我確定要清除所有訂單")
-        if st.button("清除所有訂單", disabled=not confirm_clear):
-            clear_all_orders_in_db()
-            st.success("✅ 所有訂單已成功清除！")
-            st.rerun()
