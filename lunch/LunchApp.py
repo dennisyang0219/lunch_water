@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from utils import load_store_config, load_cutoff_datetime, load_menus_from_db, save_new_order_to_db
-
+from utils import load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db
 
 st.set_page_config(
     page_title="團體訂便當",
@@ -10,15 +9,15 @@ st.set_page_config(
 )
 
 selected_store_by_admin = load_store_config()
-cutoff_datetime = load_cutoff_datetime()
+cutoff_time = load_cutoff_time()
 
 menus_df = load_menus_from_db()
 
 st.title("🍱 團體訂便當系統")
 st.markdown("---")
 
-if datetime.now() > cutoff_datetime:
-    st.error(f"⚠️ **訂餐已截止**。截止時間為：{cutoff_datetime.strftime('%Y-%m-%d %H:%M')}")
+if datetime.now().time() > cutoff_time:
+    st.error(f"⚠️ **訂餐已截止**。截止時間為：{cutoff_time.strftime('%H:%M')}")
     st.info("若有緊急需求，請直接聯繫管理者。")
 elif selected_store_by_admin is None:
     st.info("請等待管理者設定今日便當店家。")
@@ -32,7 +31,7 @@ else:
     st.write(f"今日店家：**{selected_store_by_admin}**")
     st.write(f"地址：**{store_info.get('店家地址', '未提供')}**")
     st.write(f"電話：**{store_info.get('店家電話', '未提供')}**")
-    st.write(f"今天的訂餐截止時間為：**{cutoff_datetime.strftime('%Y-%m-%d %H:%M')}**")
+    st.write(f"今天的訂餐截止時間為：**{cutoff_time.strftime('%H:%M')}**")
     
     menu_items = menus_df[menus_df['店家名稱'] == selected_store_by_admin]
     
