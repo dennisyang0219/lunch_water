@@ -85,35 +85,39 @@ else:
             selected_menu_store = None
 
         if selected_menu_store:
-            selected_menu_df = menus_df[menus_df['店家名稱'] == selected_menu_store].copy()
-            selected_menu_df = selected_menu_df[selected_menu_df['便當品項'] != '無']
-            
-            edited_menus_df = st.data_editor(
-                selected_menu_df,
-                column_config={
-                    "id": None,
-                    "店家名稱": None,
-                    "店家地址": "店家地址",
-                    "店家電話": "店家電話",
-                    "便當品項": st.column_config.TextColumn("便當品項", help="輸入便當品項"),
-                    "價格": st.column_config.NumberColumn("價格", help="輸入價格", format="NT$%d", step=1)
-                },
-                num_rows="dynamic",
-                use_container_width=True,
-                hide_index=True,
-                key="menu_data_editor"
-            )
-            
-            if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
-                edited_menus_df['店家名稱'] = selected_menu_store
-                edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
+            # 確保 selected_menu_store 在 menus_df 中存在
+            if selected_menu_store not in menus_df['店家名稱'].unique():
+                st.warning(f"店家 {selected_menu_store} 的資料尚未載入，請稍候。")
+            else:
+                selected_menu_df = menus_df[menus_df['店家名稱'] == selected_menu_store].copy()
+                selected_menu_df = selected_menu_df[selected_menu_df['便當品項'] != '無']
                 
-                menus_df = menus_df[menus_df['店家名稱'] != selected_menu_store]
-                updated_menus_df = pd.concat([menus_df, edited_menus_df], ignore_index=True)
+                edited_menus_df = st.data_editor(
+                    selected_menu_df,
+                    column_config={
+                        "id": None,
+                        "店家名稱": None,
+                        "店家地址": "店家地址",
+                        "店家電話": "店家電話",
+                        "便當品項": st.column_config.TextColumn("便當品項", help="輸入便當品項"),
+                        "價格": st.column_config.NumberColumn("價格", help="輸入價格", format="NT$%d", step=1)
+                    },
+                    num_rows="dynamic",
+                    use_container_width=True,
+                    hide_index=True,
+                    key="menu_data_editor"
+                )
                 
-                update_menus_in_db(updated_menus_df)
-                st.success("✅ 菜單變動已成功儲存！")
-                st.rerun()
+                if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
+                    edited_menus_df['店家名稱'] = selected_menu_store
+                    edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
+                    
+                    menus_df = menus_df[menus_df['店家名稱'] != selected_menu_store]
+                    updated_menus_df = pd.concat([menus_df, edited_menus_df], ignore_index=True)
+                    
+                    update_menus_in_db(updated_menus_df)
+                    st.success("✅ 菜單變動已成功儲存！")
+                    st.rerun()
 
     with tab3:
         st.header("⚙️ 今日訂餐設定")
@@ -231,3 +235,11 @@ else:
             st.info("目前還沒有人訂餐。")
 
         st.markdown("---")
+        
+        st.header("🗑️ 清除所有訂單")
+        st.warning("⚠️ 此操作會永久刪除所有訂單資料，請謹慎使用。")
+        confirm_clear = st.checkbox("我確定要清除所有訂單")
+        if st.button("清除所有訂單", disabled=not confirm_clear):
+            clear_all_orders_in_db()
+            st.success("✅ 所有訂單已成功清除！")
+            st.rerun()
