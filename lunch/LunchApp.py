@@ -1,71 +1,76 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
-from utils import load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db
+from datetime import time, datetime
+from utils import (
+    load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db,
+    initialize_database
+)
+
+# 確保資料庫在應用程式啟動時只初始化一次
+if 'db_initialized' not in st.session_state:
+    initialize_database()
+    st.session_state.db_initialized = True
 
 st.set_page_config(
-    page_title="團體訂便當",
-    page_icon="🍱"
+    page_title="便當點餐系統",
+    page_icon="🍱",
+    layout="centered",
+    initial_sidebar_state="expanded"
 )
 
-selected_store_by_admin = load_store_config()
+st.title("🍱 便當點餐系統")
+st.markdown("---")
+
+# 載入所有店家和菜單資訊
+menus_df = load_menus_from_db()
+all_stores = sorted(menus_df['店家名稱'].unique().tolist()) if not menus_df.empty else []
+all_stores = [s for s in all_stores if s] # 移除空字串
+
+# 載入今日店家和截止時間
+today_store_name = load_store_config()
 cutoff_time = load_cutoff_time()
 
-menus_df = load_menus_from_db()
-
-st.title("🍱 團體訂便當系統")
-st.markdown("---")
-
-if datetime.now().time() > cutoff_time:
-    st.error(f"⚠️ **訂餐已截止**。截止時間為：{cutoff_time.strftime('%H:%M')}")
-    st.info("若有緊急需求，請直接聯繫管理者。")
-elif selected_store_by_admin is None:
-    st.info("請等待管理者設定今日便當店家。")
-elif menus_df.empty:
-    st.info("目前沒有可訂餐的店家及菜單。請聯繫管理者新增。")
+if not today_store_name or not menus_df.empty:
+    st.warning("⚠️ 管理員尚未設定今日店家，請稍候。")
+    st.info("請聯絡管理員登入後台進行設定。")
 else:
-    st.header("1️⃣ 訂餐區")
+    st.header(f"今日便當店家：{today_store_name}")
+    st.markdown(f"**訂餐截止時間**：`{cutoff_time.strftime('%H:%M')}`")
     
-    store_info = menus_df[menus_df['店家名稱'] == selected_store_by_admin].iloc[0]
+    current_time = datetime.now().time()
     
-    st.write(f"今日店家：**{selected_store_by_admin}**")
-    st.write(f"地址：**{store_info.get('店家地址', '未提供')}**")
-    st.write(f"電話：**{store_info.get('店家電話', '未提供')}**")
-    st.write(f"今天的訂餐截止時間為：**{cutoff_time.strftime('%H:%M')}**")
-    
-    menu_items = menus_df[menus_df['店家名稱'] == selected_store_by_admin]
-    
-    if not menu_items.empty:
-        item_price_dict = dict(zip(menu_items['便當品項'], menu_items['價格']))
-        selected_item = st.selectbox("請選擇便當品項", options=list(item_price_dict.keys()))
-        price = item_price_dict.get(selected_item, 0)
-        
-        st.write(f"您選擇的 **{selected_item}** 價格為：**NT$ {int(price)}**")
+    if current_time > cutoff_time:
+        st.error("⏳ 訂餐時間已過，無法再新增訂單。")
     else:
-        selected_item = None
-        price = 0
-        st.warning("此店家目前沒有菜單品項，請聯繫管理者新增。")
-
-    with st.form("order_form"):
-        name = st.text_input("請輸入你的姓名", key="name_input")
-        submitted = st.form_submit_button("送出訂單")
+        store_menu = menus_df[menus_df['店家名稱'] == today_store_name]
         
-        if submitted:
-            if not name:
-                st.warning("請輸入你的姓名後再送出！")
-            elif not selected_item:
-                st.warning("請選擇便當品項後再送出！")
-            else:
-                save_new_order_to_db(name, selected_store_by_admin, selected_item, price)
-                st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {int(price)}**。")
-
-st.markdown("---")
-
-st.markdown(
-    """
-    <div style="text-align: center; color: gray;">
-        <p>🍱 由 <b>小明</b> 製作</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+        if store_menu.empty or (len(store_menu) == 1 and store_menu.iloc[0]['便當品項'] == '無'):
+            st.warning("⚠️ 此店家菜單尚未設定，請通知管理員。")
+        else:
+            st.subheader("點餐")
+            with st.form("lunch_order_form"):
+                name = st.text_input("您的姓名", key="order_name")
+                
+                # 準備菜單選項
+                menu_options = store_menu.apply(
+                    lambda row: f"{row['便當品項']} (NT$ {row['價格']})",
+                    axis=1
+                ).tolist()
+                
+                selected_item_str = st.selectbox("選擇便當品項", options=menu_options, key="order_item")
+                
+                # 提交按鈕
+                submitted = st.form_submit_button("送出訂單")
+                
+                if submitted:
+                    if not name:
+                        st.error("請輸入您的姓名。")
+                    else:
+                        selected_item_name = selected_item_str.split(' (NT$')[0]
+                        selected_item_price = int(selected_item_str.split('NT$ ')[-1].split(')')[0])
+                        
+                        try:
+                            save_new_order_to_db(name, today_store_name, selected_item_name, selected_item_price)
+                            st.success(f"🎉 訂單已送出！**{name}**，您點了 **{selected_item_name}**，價格 **NT$ {selected_item_price}**。")
+                        except Exception as e:
+                            st.error(f"送出訂單時發生錯誤: {e}")
