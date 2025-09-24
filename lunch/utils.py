@@ -39,10 +39,13 @@ def init_db():
             備註 TEXT DEFAULT ''
         )
     """)
+    # 修改 menus 資料表結構，新增電話與地址欄位
     c.execute("""
         CREATE TABLE IF NOT EXISTS menus (
             id INTEGER PRIMARY KEY,
             店家名稱 TEXT NOT NULL,
+            店家地址 TEXT,
+            店家電話 TEXT,
             便當品項 TEXT NOT NULL,
             價格 INTEGER NOT NULL,
             UNIQUE(店家名稱, 便當品項) ON CONFLICT REPLACE
@@ -59,7 +62,6 @@ def load_orders_from_db():
     if conn is None:
         return pd.DataFrame() # 返回空資料框
     df = pd.read_sql_query("SELECT * FROM orders", conn)
-    # 不關閉連接
     if '已付款' in df.columns:
         df['已付款'] = df['已付款'].astype(bool)
     if '選取' in df.columns:
@@ -75,11 +77,7 @@ def load_menus_from_db():
     if conn is None:
         return pd.DataFrame() # 返回空資料框
     df = pd.read_sql_query("SELECT * FROM menus", conn)
-    # 不關閉連接
     return df
-
-# 以下為其餘程式碼，請確保與之前提供的版本一致
-# ... (save_new_order_to_db, update_orders_in_db, delete_orders_from_db 等)
 
 # 輔助函數：儲存新的訂單到資料庫
 def save_new_order_to_db(name, store, item, price):
@@ -89,7 +87,6 @@ def save_new_order_to_db(name, store, item, price):
     c.execute("INSERT INTO orders (姓名, 店家, 便當品項, 價格) VALUES (?, ?, ?, ?)",
               (name, store, item, price))
     conn.commit()
-    # 不關閉連接
     st.cache_data.clear()
 
 # 輔助函數：更新資料庫中的訂單
@@ -98,7 +95,6 @@ def update_orders_in_db(df):
     if conn is None: return
     df.to_sql('orders', conn, if_exists='replace', index=False)
     conn.commit()
-    # 不關閉連接
     st.cache_data.clear()
 
 # 輔助函數：從資料庫中刪除訂單
@@ -108,7 +104,6 @@ def delete_orders_from_db(order_ids):
     c = conn.cursor()
     c.execute("DELETE FROM orders WHERE id IN ({})".format(','.join('?'*len(order_ids))), order_ids)
     conn.commit()
-    # 不關閉連接
     st.cache_data.clear()
 
 # 輔助函數：更新資料庫中的菜單
@@ -117,7 +112,6 @@ def update_menus_in_db(df):
     if conn is None: return
     df.to_sql('menus', conn, if_exists='replace', index=False)
     conn.commit()
-    # 不關閉連接
     st.cache_data.clear()
 
 # 輔助函數：清除所有訂單
@@ -127,7 +121,6 @@ def clear_all_orders_in_db():
     c = conn.cursor()
     c.execute("DELETE FROM orders")
     conn.commit()
-    # 不關閉連接
     st.cache_data.clear()
     
 # 輔助函數：儲存店家設定到檔案
