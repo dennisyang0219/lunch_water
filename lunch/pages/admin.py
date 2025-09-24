@@ -11,11 +11,9 @@ import os
 st.title("👨‍💼 管理者後台")
 st.markdown("---")
 
-# 使用 session_state 來管理登入狀態和目前的分頁
+# 使用 session_state 來管理登入狀態
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-if "current_tab" not in st.session_state:
-    st.session_state.current_tab = "便當店管理"
 
 if not st.session_state.logged_in:
     password = st.text_input("請輸入管理者密碼", type="password", key="login_password")
@@ -36,15 +34,12 @@ else:
     all_store_names = sorted(menus_df['店家名稱'].unique().tolist()) if not menus_df.empty else []
     all_store_names = [name for name in all_store_names if name]
     
-    # 建立 tab 元件
-    tab_titles = ["🏡 便當店管理", "📋 菜單管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"]
-    selected_tab_title = st.selectbox("選擇分頁", tab_titles, index=tab_titles.index(st.session_state.current_tab))
-    st.session_state.current_tab = selected_tab_title
-    
-    st.markdown("---") # 分隔線
-    
-    if st.session_state.current_tab == "🏡 便當店管理":
-        st.header("🏡 便當店管理")
+    tab1, tab2, tab3 = st.tabs(["🏡 菜單與店家管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"])
+
+    with tab1:
+        st.header("🏡 菜單與店家管理")
+        
+        # 新增店家
         st.subheader("新增店家")
         new_store_name = st.text_input("請輸入新店家名稱", key="new_store_name_input")
         new_store_address = st.text_input("請輸入店家地址", key="new_store_address_input")
@@ -60,17 +55,60 @@ else:
                 updated_menus_df = pd.concat([menus_df, new_row], ignore_index=True)
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功新增店家：**{new_store_name}**")
-                # 成功新增後，將分頁狀態強制設為「菜單管理」並重新執行
-                st.session_state.current_tab = "菜單管理"
                 st.rerun()
             else:
                 st.warning("⚠️ 請輸入有效的店家名稱，且店家名稱不能重複。")
         
         st.markdown("---")
         
+        # 編輯菜單
+        st.subheader("編輯店家菜單")
+        if all_store_names:
+            selected_menu_store = st.selectbox(
+                "請選擇要編輯菜單的店家",
+                options=all_store_names
+            )
+        else:
+            st.info("請先新增一個店家。")
+            selected_menu_store = None
+
+        if selected_menu_store:
+            selected_menu_df = menus_df[menus_df['店家名稱'] == selected_menu_store].copy()
+            selected_menu_df = selected_menu_df[selected_menu_df['便當品項'] != '無']
+            
+            edited_menus_df = st.data_editor(
+                selected_menu_df,
+                column_config={
+                    "id": None,
+                    "店家名稱": None,
+                    "店家地址": "店家地址",
+                    "店家電話": "店家電話",
+                    "便當品項": st.column_config.TextColumn("便當品項", help="輸入便當品項"),
+                    "價格": st.column_config.NumberColumn("價格", help="輸入價格", format="NT$%d", step=1)
+                },
+                num_rows="dynamic",
+                use_container_width=True,
+                hide_index=True,
+                key="menu_data_editor"
+            )
+            
+            if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
+                edited_menus_df['店家名稱'] = selected_menu_store
+                edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
+                
+                menus_df = menus_df[menus_df['店家名稱'] != selected_menu_store]
+                updated_menus_df = pd.concat([menus_df, edited_menus_df], ignore_index=True)
+                
+                update_menus_in_db(updated_menus_df)
+                st.success("✅ 菜單變動已成功儲存！")
+                st.rerun()
+        
+        st.markdown("---")
+
+        # 刪除店家
         st.subheader("刪除店家")
         if all_store_names:
-            store_to_delete = st.selectbox("選擇要刪除的店家", all_store_names)
+            store_to_delete = st.selectbox("選擇要刪除的店家", all_store_names, key="delete_store_selectbox")
             if st.button("確認刪除店家", help="此操作會永久刪除店家及其所有菜單品項，無法復原。"):
                 updated_menus_df = menus_df[menus_df['店家名稱'] != store_to_delete]
                 update_menus_in_db(updated_menus_df)
@@ -79,55 +117,8 @@ else:
         else:
             st.info("目前沒有可供刪除的店家。")
 
-    elif st.session_state.current_tab == "📋 菜單管理":
-        st.header("📋 菜單管理")
-        
-        st.subheader("編輯店家菜單")
-        if all_store_names:
-            selected_menu_store = st.selectbox(
-                "請選擇要編輯菜單的店家",
-                options=all_store_names
-            )
-        else:
-            st.info("請先在「便當店管理」區塊新增店家。")
-            selected_menu_store = None
 
-        if selected_menu_store:
-            # 確保 selected_menu_store 在 menus_df 中存在
-            if selected_menu_store not in menus_df['店家名稱'].unique():
-                st.warning(f"店家 {selected_menu_store} 的資料尚未載入，請稍候。")
-            else:
-                selected_menu_df = menus_df[menus_df['店家名稱'] == selected_menu_store].copy()
-                selected_menu_df = selected_menu_df[selected_menu_df['便當品項'] != '無']
-                
-                edited_menus_df = st.data_editor(
-                    selected_menu_df,
-                    column_config={
-                        "id": None,
-                        "店家名稱": None,
-                        "店家地址": "店家地址",
-                        "店家電話": "店家電話",
-                        "便當品項": st.column_config.TextColumn("便當品項", help="輸入便當品項"),
-                        "價格": st.column_config.NumberColumn("價格", help="輸入價格", format="NT$%d", step=1)
-                    },
-                    num_rows="dynamic",
-                    use_container_width=True,
-                    hide_index=True,
-                    key="menu_data_editor"
-                )
-                
-                if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
-                    edited_menus_df['店家名稱'] = selected_menu_store
-                    edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
-                    
-                    menus_df = menus_df[menus_df['店家名稱'] != selected_menu_store]
-                    updated_menus_df = pd.concat([menus_df, edited_menus_df], ignore_index=True)
-                    
-                    update_menus_in_db(updated_menus_df)
-                    st.success("✅ 菜單變動已成功儲存！")
-                    st.rerun()
-
-    elif st.session_state.current_tab == "⚙️ 今日訂餐設定":
+    with tab2:
         st.header("⚙️ 今日訂餐設定")
         
         selected_store_by_admin = load_store_config()
@@ -150,7 +141,7 @@ else:
                 st.success(f"✅ 已成功設定今日店家為：**{selected_store}**")
                 st.rerun()
         else:
-            st.info("請先在「便當店管理」區塊新增店家。")
+            st.info("請先在「菜單與店家管理」區塊新增店家。")
 
         st.markdown("---")
 
@@ -174,7 +165,7 @@ else:
             st.success(f"✅ 已成功設定訂餐截止時間為：**{new_cutoff_time_str}**")
             st.rerun()
 
-    elif st.session_state.current_tab == "📊 訂單總覽":
+    with tab3:
         st.header("📊 訂單總覽")
         orders_df = load_orders_from_db()
 
