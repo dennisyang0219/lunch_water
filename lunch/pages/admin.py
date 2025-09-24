@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 from datetime import time
 from utils import (
@@ -11,10 +11,24 @@ import os
 st.title("👨‍💼 管理者後台")
 st.markdown("---")
 
-password = st.text_input("請輸入管理者密碼", type="password")
+# 使用 session_state 來管理登入狀態
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-if password == "admin603":
-    
+# 檢查登入狀態
+if not st.session_state.logged_in:
+    password = st.text_input("請輸入管理者密碼", type="password", key="login_password")
+    if password == "admin603":
+        st.session_state.logged_in = True
+        st.experimental_rerun()
+    elif password:
+        st.error("密碼錯誤，請重新輸入。")
+else:
+    # 登入成功後顯示的內容
+    if st.button("登出"):
+        st.session_state.logged_in = False
+        st.experimental_rerun()
+        
     st.header("📋 菜單管理")
     
     menus_df = load_menus_from_db()
@@ -66,20 +80,14 @@ if password == "admin603":
         )
         
         if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
-            # 確保新增的行有正確的店家名稱
             edited_menus_df['店家名稱'] = edited_menus_df['店家名稱'].apply(
                 lambda x: selected_menu_store if pd.isna(x) or x == '' else x
             )
-            # 過濾掉空的便當品項
             edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
             
-            # 從原始資料中刪除舊的店家菜單
             menus_df = menus_df[menus_df['店家名稱'] != selected_menu_store]
-            
-            # 合併更新後的資料
             updated_menus_df = pd.concat([menus_df, edited_menus_df], ignore_index=True)
             
-            # 儲存至資料庫
             update_menus_in_db(updated_menus_df)
             st.success("✅ 菜單變動已成功儲存！")
             st.experimental_rerun()
@@ -135,81 +143,4 @@ if password == "admin603":
     st.markdown("---")
 
     st.header("📊 訂單總覽")
-    orders_df = load_orders_from_db()
-
-    if not orders_df.empty:
-        st.subheader("所有已送出訂單")
-        edited_df = st.data_editor(
-            orders_df,
-            column_config={
-                "id": None,
-                "已付款": st.column_config.CheckboxColumn(
-                    "已付款",
-                    help="勾選此欄位表示此筆訂單已完成付款",
-                    default=False,
-                    width="small"
-                ),
-                "選取": st.column_config.CheckboxColumn(
-                    "選取",
-                    help="勾選此欄位可計算總金額",
-                    default=False,
-                    width="small"
-                ),
-                "刪除": st.column_config.CheckboxColumn(
-                    "刪除",
-                    help="勾選此欄位可刪除訂單",
-                    default=False,
-                    width="small"
-                ),
-                "備註": st.column_config.TextColumn(
-                    "備註",
-                    help="可用於記錄找零等事項",
-                    default="",
-                    width="medium"
-                )
-            },
-            hide_index=True,
-            key="admin_data_editor"
-        )
-        
-        if not edited_df.equals(orders_df):
-            update_orders_in_db(edited_df)
-            st.info("訂單變動已自動儲存。")
-            
-        orders_to_delete = edited_df[edited_df["刪除"] == True]
-        if not orders_to_delete.empty:
-            if st.button("刪除已選取訂單"):
-                order_ids_to_delete = orders_to_delete["id"].tolist()
-                delete_orders_from_db(order_ids_to_delete)
-                st.success("✅ 已成功刪除選取的訂單。")
-                st.experimental_rerun()
-                
-        selected_orders = edited_df[edited_df["選取"] == True]
-        selected_total = selected_orders["價格"].sum()
-
-        st.markdown(f"#### **總訂單數**：{len(orders_df)} 筆")
-        st.markdown(f"#### **所有訂單總金額**：NT$ {orders_df['價格'].sum()}")
-        st.markdown(f"### **已選取訂單總金額**：<font color='green'>NT$ {selected_total}</font>", unsafe_allow_html=True)
-
-        csv_export = orders_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 下載所有訂單 (CSV)",
-            data=csv_export,
-            file_name='lunch_orders.csv',
-            mime='text/csv',
-        )
-    else:
-        st.info("目前還沒有人訂餐。")
-
-    st.markdown("---")
-    
-    st.header("🗑️ 清除所有訂單")
-    st.warning("⚠️ 此操作會永久刪除所有訂單資料，請謹慎使用。")
-    confirm_clear = st.checkbox("我確定要清除所有訂單")
-    if st.button("清除所有訂單", disabled=not confirm_clear):
-        clear_all_orders_in_db()
-        st.success("✅ 所有訂單已成功清除！")
-        st.experimental_rerun()
-        
-elif password:
-    st.error("密碼錯誤，請重新輸入。")
+    orders_df = load
