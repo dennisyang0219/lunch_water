@@ -4,7 +4,7 @@ from datetime import time
 from utils import (
     load_store_config, save_store_config, load_cutoff_time, save_cutoff_time, 
     load_orders_from_db, update_orders_in_db, clear_all_orders_in_db,
-    delete_orders_from_db, load_menus_from_db, update_menus_in_db
+    delete_orders_from_db, load_menus_from_db, update_menus_in_db, init_db
 )
 import os
 
@@ -27,18 +27,18 @@ else:
         st.session_state.logged_in = False
         st.rerun()
     
-    tab1, tab2, tab3 = st.tabs(["📋 菜單管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"])
-    
-    with tab1:
-        st.header("📋 菜單管理")
-        
-        menus_df = load_menus_from_db()
-        if not menus_df.empty:
-            menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
-        
-        all_store_names = sorted(menus_df['店家名稱'].unique().tolist()) if not menus_df.empty else []
-        all_store_names = [name for name in all_store_names if name]
+    # 這裡將 tab 數量增加為四個，並新增「便當店管理」
+    tab1, tab2, tab3, tab4 = st.tabs(["🏡 便當店管理", "📋 菜單管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"])
 
+    # 載入所有店家和菜單資訊
+    menus_df = load_menus_from_db()
+    if not menus_df.empty:
+        menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
+    all_store_names = sorted(menus_df['店家名稱'].unique().tolist()) if not menus_df.empty else []
+    all_store_names = [name for name in all_store_names if name]
+
+    with tab1:
+        st.header("🏡 便當店管理")
         st.subheader("新增店家")
         new_store_name = st.text_input("請輸入新店家名稱", key="new_store_name_input")
         new_store_address = st.text_input("請輸入店家地址", key="new_store_address_input")
@@ -59,6 +59,21 @@ else:
                 st.warning("⚠️ 請輸入有效的店家名稱，且店家名稱不能重複。")
         
         st.markdown("---")
+        
+        st.subheader("刪除店家")
+        if all_store_names:
+            store_to_delete = st.selectbox("選擇要刪除的店家", all_store_names)
+            if st.button("確認刪除店家", help="此操作會永久刪除店家及其所有菜單品項，無法復原。"):
+                # 從 menus_df 中刪除選定的店家
+                updated_menus_df = menus_df[menus_df['店家名稱'] != store_to_delete]
+                update_menus_in_db(updated_menus_df)
+                st.success(f"✅ 已成功刪除店家：**{store_to_delete}**")
+                st.rerun()
+        else:
+            st.info("目前沒有可供刪除的店家。")
+
+    with tab2:
+        st.header("📋 菜單管理")
         
         st.subheader("編輯店家菜單")
         if all_store_names:
@@ -101,7 +116,7 @@ else:
                 st.success("✅ 菜單變動已成功儲存！")
                 st.rerun()
 
-    with tab2:
+    with tab3:
         st.header("⚙️ 今日訂餐設定")
         
         selected_store_by_admin = load_store_config()
@@ -124,7 +139,7 @@ else:
                 st.success(f"✅ 已成功設定今日店家為：**{selected_store}**")
                 st.rerun()
         else:
-            st.info("請先在「菜單管理」區塊新增店家。")
+            st.info("請先在「便當店管理」區塊新增店家。")
 
         st.markdown("---")
 
@@ -132,7 +147,6 @@ else:
         
         time_options = {
             "上午 8:50": time(8, 50),
-            "下午 23:50": time(23,50),
             "下午 4:00": time(16, 0)
         }
         current_time_str = "上午 8:50" if current_cutoff_time == time(8, 50) else "下午 4:00"
@@ -149,7 +163,7 @@ else:
             st.success(f"✅ 已成功設定訂餐截止時間為：**{new_cutoff_time_str}**")
             st.rerun()
 
-    with tab3:
+    with tab4:
         st.header("📊 訂單總覽")
         orders_df = load_orders_from_db()
 
