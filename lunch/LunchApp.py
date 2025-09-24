@@ -13,7 +13,8 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 使用 Streamlit 的 session state 來確保資料庫只初始化一次
+# 確保資料庫在應用程式啟動時只初始化一次
+# 這段程式碼必須在頁面載入之前，且在第一個 Streamlit 指令之後
 if 'db_initialized' not in st.session_state:
     initialize_database()
     st.session_state.db_initialized = True
