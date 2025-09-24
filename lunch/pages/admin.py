@@ -81,7 +81,7 @@ else:
                 options=all_store_names
             )
         else:
-            st.info("請先新增一個店家。")
+            st.info("請先在「便當店管理」區塊新增店家。")
             selected_menu_store = None
 
         if selected_menu_store:
