@@ -8,7 +8,7 @@ from utils import (
 )
 import os
 
-# 在所有頁面載入之前，確保資料庫已初始化
+# 確保資料庫在所有頁面載入之前，只初始化一次
 if 'db_initialized' not in st.session_state:
     initialize_database()
     st.session_state.db_initialized = True
@@ -32,6 +32,7 @@ else:
         st.session_state.logged_in = False
         st.rerun()
     
+    # 每次重新執行時都從資料庫載入最新資料
     menus_df = load_menus_from_db()
     if not menus_df.empty:
         menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
@@ -57,6 +58,7 @@ else:
                 updated_menus_df = pd.concat([menus_df, new_row], ignore_index=True)
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功新增店家：**{new_store_name}**")
+                # 重新運行應用程式以刷新選單
                 st.rerun()
             else:
                 st.warning("⚠️ 請輸入有效的店家名稱，且店家名稱不能重複。")
