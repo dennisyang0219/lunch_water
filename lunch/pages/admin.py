@@ -4,7 +4,7 @@ from datetime import time
 from utils import (
     load_store_config, save_store_config, load_cutoff_time, save_cutoff_time, 
     load_orders_from_db, update_orders_in_db, clear_all_orders_in_db,
-    delete_orders_from_db, load_menus_from_db, update_menus_in_db, init_db
+    delete_orders_from_db, load_menus_from_db, update_menus_in_db
 )
 import os
 
@@ -27,9 +27,8 @@ else:
         st.session_state.logged_in = False
         st.rerun()
     
-    # 這裡將 tab 數量增加為四個，並新增「便當店管理」
     tab1, tab2, tab3, tab4 = st.tabs(["🏡 便當店管理", "📋 菜單管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"])
-
+    
     # 載入所有店家和菜單資訊
     menus_df = load_menus_from_db()
     if not menus_df.empty:
@@ -64,7 +63,6 @@ else:
         if all_store_names:
             store_to_delete = st.selectbox("選擇要刪除的店家", all_store_names)
             if st.button("確認刪除店家", help="此操作會永久刪除店家及其所有菜單品項，無法復原。"):
-                # 從 menus_df 中刪除選定的店家
                 updated_menus_df = menus_df[menus_df['店家名稱'] != store_to_delete]
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功刪除店家：**{store_to_delete}**")
