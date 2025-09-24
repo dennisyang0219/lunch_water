@@ -1,0 +1,137 @@
+﻿import pandas as pd
+import os
+from datetime import time
+import sqlite3
+
+# 資料庫檔案
+DB_FILE = "lunch.db"
+# 其他檔案路徑
+STORE_CONFIG_FILE = "store_config.txt"
+CUTOFF_TIME_FILE = "cutoff_time.txt"
+
+# 輔助函數：連接資料庫
+def get_db_connection():
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+    return conn
+
+# 輔助函數：初始化資料庫
+def init_db():
+    conn = get_db_connection()
+    c = conn.cursor()
+    # 建立訂單表格，如果它不存在的話
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY,
+            姓名 TEXT NOT NULL,
+            店家 TEXT NOT NULL,
+            便當品項 TEXT NOT NULL,
+            價格 INTEGER NOT NULL,
+            已付款 BOOLEAN DEFAULT FALSE,
+            選取 BOOLEAN DEFAULT FALSE,
+            刪除 BOOLEAN DEFAULT FALSE,
+            備註 TEXT DEFAULT ''
+        )
+    """)
+    # 建立菜單表格，如果它不存在的話
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS menus (
+            id INTEGER PRIMARY KEY,
+            店家名稱 TEXT NOT NULL,
+            便當品項 TEXT NOT NULL,
+            價格 INTEGER NOT NULL,
+            UNIQUE(店家名稱, 便當品項) ON CONFLICT REPLACE
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+# 輔助函數：從資料庫讀取所有訂單
+def load_orders_from_db():
+    conn = get_db_connection()
+    df = pd.read_sql_query("SELECT * FROM orders", conn)
+    conn.close()
+    
+    # 確保 '已付款', '選取' 和 '刪除' 欄位是布林值
+    if '已付款' in df.columns:
+        df['已付款'] = df['已付款'].astype(bool)
+    if '選取' in df.columns:
+        df['選取'] = df['選取'].astype(bool)
+    if '刪除' in df.columns:
+        df['刪除'] = df['刪除'].astype(bool)
+        
+    return df
+
+# 輔助函數：從資料庫讀取所有菜單
+def load_menus_from_db():
+    conn = get_db_connection()
+    df = pd.read_sql_query("SELECT * FROM menus", conn)
+    conn.close()
+    return df
+
+# 輔助函數：儲存新的訂單到資料庫
+def save_new_order_to_db(name, store, item, price):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("INSERT INTO orders (姓名, 店家, 便當品項, 價格) VALUES (?, ?, ?, ?)",
+              (name, store, item, price))
+    conn.commit()
+    conn.close()
+
+# 輔助函數：更新資料庫中的訂單
+def update_orders_in_db(df):
+    conn = get_db_connection()
+    df.to_sql('orders', conn, if_exists='replace', index=False)
+    conn.close()
+
+# 輔助函數：從資料庫中刪除訂單
+def delete_orders_from_db(order_ids):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM orders WHERE id IN ({})".format(','.join('?'*len(order_ids))), order_ids)
+    conn.commit()
+    conn.close()
+
+# 輔助函數：更新資料庫中的菜單
+def update_menus_in_db(df):
+    conn = get_db_connection()
+    df.to_sql('menus', conn, if_exists='replace', index=False)
+    conn.close()
+
+# 輔助函數：清除所有訂單
+def clear_all_orders_in_db():
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM orders")
+    conn.commit()
+    conn.close()
+    
+# 輔助函數：儲存店家設定到檔案
+def save_store_config(store_name):
+    with open(STORE_CONFIG_FILE, "w", encoding="utf-8") as f:
+        f.write(store_name)
+
+# 輔助函數：從檔案讀取店家設定
+def load_store_config():
+    if os.path.exists(STORE_CONFIG_FILE):
+        with open(STORE_CONFIG_FILE, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    return None
+
+# 輔助函數：儲存截止時間到檔案
+def save_cutoff_time(time_obj):
+    with open(CUTOFF_TIME_FILE, "w", encoding="utf-8") as f:
+        f.write(time_obj.strftime("%H:%M:%S"))
+
+# 輔助函數：從檔案讀取截止時間
+def load_cutoff_time():
+    if os.path.exists(CUTOFF_TIME_FILE):
+        with open(CUTOFF_TIME_FILE, "r", encoding="utf-8") as f:
+            time_str = f.read().strip()
+            try:
+                return time.fromisoformat(time_str)
+            except ValueError:
+                return time(12, 0)
+    return time(12, 0)
+
+# 初始化資料庫
+init_db()
