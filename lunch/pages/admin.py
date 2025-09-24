@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-from datetime import time
+from datetime import time, datetime
 from utils import (
-    load_store_config, save_store_config, load_cutoff_time, save_cutoff_time, 
+    load_store_config, save_store_config, load_cutoff_datetime, save_cutoff_datetime, 
     load_orders_from_db, update_orders_in_db, clear_all_orders_in_db,
     delete_orders_from_db, load_menus_from_db, update_menus_in_db
 )
@@ -27,10 +27,8 @@ else:
         st.session_state.logged_in = False
         st.rerun()
     
-    # 使用 tabs 區分管理功能
     tab1, tab2, tab3 = st.tabs(["📋 菜單管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"])
     
-    # Tab 1: 菜單管理
     with tab1:
         st.header("📋 菜單管理")
         
@@ -103,12 +101,11 @@ else:
                 st.success("✅ 菜單變動已成功儲存！")
                 st.rerun()
 
-    # Tab 2: 今日訂餐設定
     with tab2:
         st.header("⚙️ 今日訂餐設定")
         
         selected_store_by_admin = load_store_config()
-        current_cutoff_time = load_cutoff_time()
+        current_cutoff_dt = load_cutoff_datetime()
         
         st.subheader("設定今日便當店家")
         
@@ -131,27 +128,21 @@ else:
 
         st.markdown("---")
 
-        st.subheader("設定訂餐截止時間")
+        st.subheader("設定訂餐截止日期與時間")
         
-        time_options = {
-            "上午 8:50": time(8, 50),
-            "下午 4:00": time(16, 0)
-        }
-        current_time_str = "上午 8:50" if current_cutoff_time == time(8, 50) else "下午 4:00"
+        # 顯示當前截止日期與時間
+        st.write(f"目前截止時間：**{current_cutoff_dt.strftime('%Y-%m-%d %H:%M')}**")
         
-        new_cutoff_time_str = st.selectbox(
-                "選擇截止時間",
-                options=list(time_options.keys()),
-                index=list(time_options.keys()).index(current_time_str) if current_time_str in time_options else 0
-        )
+        # 新增日期與時間選擇器
+        new_cutoff_date = st.date_input("選擇截止日期", value=current_cutoff_dt.date())
+        new_cutoff_time = st.time_input("選擇截止時間", value=current_cutoff_dt.time())
         
         if st.button("確認時間設定"):
-            selected_time_obj = time_options[new_cutoff_time_str]
-            save_cutoff_time(selected_time_obj)
-            st.success(f"✅ 已成功設定訂餐截止時間為：**{new_cutoff_time_str}**")
+            combined_datetime = datetime.combine(new_cutoff_date, new_cutoff_time)
+            save_cutoff_datetime(combined_datetime)
+            st.success(f"✅ 已成功設定訂餐截止時間為：**{combined_datetime.strftime('%Y-%m-%d %H:%M')}**")
             st.rerun()
 
-    # Tab 3: 訂單總覽
     with tab3:
         st.header("📊 訂單總覽")
         orders_df = load_orders_from_db()
