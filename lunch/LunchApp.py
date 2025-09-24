@@ -4,7 +4,7 @@ from datetime import datetime
 from utils import load_store_config, load_cutoff_datetime, load_menus_from_db, save_new_order_to_db
 
 st.set_page_config(
-    page_title="訂便當",
+    page_title="團體訂便當",
     page_icon="🍱"
 )
 
@@ -13,10 +13,9 @@ cutoff_datetime = load_cutoff_datetime()
 
 menus_df = load_menus_from_db()
 
-st.title("🍱 訂便當")
+st.title("🍱 團體訂便當系統")
 st.markdown("---")
 
-# 這裡改用完整的 datetime 物件進行比對
 if datetime.now() > cutoff_datetime:
     st.error(f"⚠️ **訂餐已截止**。截止時間為：{cutoff_datetime.strftime('%Y-%m-%d %H:%M')}")
     st.info("若有緊急需求，請直接聯繫管理者。")
@@ -25,7 +24,7 @@ elif selected_store_by_admin is None:
 elif menus_df.empty:
     st.info("目前沒有可訂餐的店家及菜單。請聯繫管理者新增。")
 else:
-    st.header("訂餐區")
+    st.header("1️⃣ 訂餐區")
     
     store_info = menus_df[menus_df['店家名稱'] == selected_store_by_admin].iloc[0]
     
@@ -60,4 +59,13 @@ else:
                 save_new_order_to_db(name, selected_store_by_admin, selected_item, price)
                 st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {int(price)}**。")
 
+st.markdown("---")
 
+st.markdown(
+    """
+    <div style="text-align: center; color: gray;">
+        <p>🍱 由 <b>小明</b> 製作</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
