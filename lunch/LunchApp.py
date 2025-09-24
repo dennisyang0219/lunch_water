@@ -1,22 +1,24 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from utils import load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db
+from utils import load_store_config, load_cutoff_datetime, load_menus_from_db, save_new_order_to_db
 
 st.set_page_config(
-    page_title="訂便當",
+    page_title="團體訂便當",
     page_icon="🍱"
 )
 
 selected_store_by_admin = load_store_config()
-cutoff_time = load_cutoff_time()
+cutoff_datetime = load_cutoff_datetime()
 
 menus_df = load_menus_from_db()
 
+st.title("🍱 團體訂便當系統")
+st.markdown("---")
 
-
-if datetime.now().time() > cutoff_time:
-    st.error(f"⚠️ **訂餐已截止**。截止時間為：{cutoff_time.strftime('%H:%M')}")
+# 這裡改用完整的 datetime 物件進行比對
+if datetime.now() > cutoff_datetime:
+    st.error(f"⚠️ **訂餐已截止**。截止時間為：{cutoff_datetime.strftime('%Y-%m-%d %H:%M')}")
     st.info("若有緊急需求，請直接聯繫管理者。")
 elif selected_store_by_admin is None:
     st.info("請等待管理者設定今日便當店家。")
@@ -25,14 +27,12 @@ elif menus_df.empty:
 else:
     st.header("1️⃣ 訂餐區")
     
-    # 從菜單資料中篩選出今日店家的資訊
     store_info = menus_df[menus_df['店家名稱'] == selected_store_by_admin].iloc[0]
     
-    # 顯示店家名稱、地址和電話
     st.write(f"今日店家：**{selected_store_by_admin}**")
     st.write(f"地址：**{store_info.get('店家地址', '未提供')}**")
     st.write(f"電話：**{store_info.get('店家電話', '未提供')}**")
-    st.write(f"今天的訂餐截止時間為：**{cutoff_time.strftime('%H:%M')}**")
+    st.write(f"今天的訂餐截止時間為：**{cutoff_datetime.strftime('%Y-%m-%d %H:%M')}**")
     
     menu_items = menus_df[menus_df['店家名稱'] == selected_store_by_admin]
     
@@ -60,3 +60,13 @@ else:
                 save_new_order_to_db(name, selected_store_by_admin, selected_item, price)
                 st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {int(price)}**。")
 
+st.markdown("---")
+
+st.markdown(
+    """
+    <div style="text-align: center; color: gray;">
+        <p>🍱 由 <b>小明</b> 製作</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
