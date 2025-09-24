@@ -14,50 +14,43 @@ CUTOFF_TIME_FILE = "cutoff_time.txt"
 @st.cache_resource
 def get_db_connection():
     try:
-        # 確保資料庫存在並初始化
-        initialize_database()
         conn = sqlite3.connect(DB_FILE, check_same_thread=False)
         return conn
     except Exception as e:
         st.error(f"無法連線到資料庫: {e}")
         return None
 
-# 輔助函數：初始化資料庫（僅在應用程式啟動時執行一次）
+# 輔助函數：初始化資料庫
 def initialize_database():
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-        c = conn.cursor()
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY,
-                姓名 TEXT NOT NULL,
-                店家 TEXT NOT NULL,
-                便當品項 TEXT NOT NULL,
-                價格 INTEGER NOT NULL,
-                已付款 BOOLEAN DEFAULT FALSE,
-                選取 BOOLEAN DEFAULT FALSE,
-                刪除 BOOLEAN DEFAULT FALSE,
-                備註 TEXT DEFAULT ''
-            )
-        """)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS menus (
-                id INTEGER PRIMARY KEY,
-                店家名稱 TEXT NOT NULL,
-                店家地址 TEXT,
-                店家電話 TEXT,
-                便當品項 TEXT NOT NULL,
-                價格 INTEGER NOT NULL,
-                UNIQUE(店家名稱, 便當品項) ON CONFLICT REPLACE
-            )
-        """)
-        conn.commit()
-    except Exception as e:
-        st.error(f"資料庫初始化失敗: {e}")
-    finally:
-        if conn:
-            conn.close()
+    conn = get_db_connection()
+    if conn is None:
+        return
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY,
+            姓名 TEXT NOT NULL,
+            店家 TEXT NOT NULL,
+            便當品項 TEXT NOT NULL,
+            價格 INTEGER NOT NULL,
+            已付款 BOOLEAN DEFAULT FALSE,
+            選取 BOOLEAN DEFAULT FALSE,
+            刪除 BOOLEAN DEFAULT FALSE,
+            備註 TEXT DEFAULT ''
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS menus (
+            id INTEGER PRIMARY KEY,
+            店家名稱 TEXT NOT NULL,
+            店家地址 TEXT,
+            店家電話 TEXT,
+            便當品項 TEXT NOT NULL,
+            價格 INTEGER NOT NULL,
+            UNIQUE(店家名稱, 便當品項) ON CONFLICT REPLACE
+        )
+    """)
+    conn.commit()
 
 # 輔助函數：從資料庫讀取所有訂單
 @st.cache_data(ttl=60)
@@ -116,7 +109,7 @@ def update_menus_in_db(df):
     if conn is None: return
     df.to_sql('menus', conn, if_exists='replace', index=False)
     conn.commit()
-    st.cache_data.clear()
+    # 這裡移除不必要的快取清除，因為 data_editor 本身會觸發重新渲染
 
 # 輔助函數：清除所有訂單
 def clear_all_orders_in_db():
@@ -156,3 +149,8 @@ def load_cutoff_time():
             except ValueError:
                 return time(12, 0)
     return time(12, 0)
+
+# 確保資料庫在應用程式啟動時只初始化一次
+if 'db_initialized' not in st.session_state:
+    initialize_database()
+    st.session_state.db_initialized = True
