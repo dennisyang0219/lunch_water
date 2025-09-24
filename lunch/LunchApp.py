@@ -51,19 +51,8 @@ else:
                 save_new_order_to_db(name, selected_store_by_admin, selected_item, price)
 
                 st.success(f"✅ **{name}**，您已成功訂購 **{selected_item}**！總金額為 **NT$ {price}**。")
-"""
-st.markdown("---")
 
-# Use st.markdown() with the 'unsafe_allow_html=True' argument
-st.markdown(
-    
-    <div style="text-align: center; color: gray;">
-        <p>🍱 由 <b>煦哥</b> 製作</p>
-    </div>
-    ,
-    unsafe_allow_html=True
-)
-"""
+
 
 
 
