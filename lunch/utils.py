@@ -42,7 +42,6 @@ def initialize_database():
         conn.commit()
         conn.close()
     except Exception as e:
-        # 在純工具函式中不處理 Streamlit 介面，將錯誤拋給上層
         raise e
 
 # 輔助函數：連接資料庫 (使用 Streamlit 的單例模式)
