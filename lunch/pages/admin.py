@@ -73,11 +73,18 @@ else:
             selected_menu_store = None
 
         if selected_menu_store:
+            # 獲取選定店家的所有品項，包括無品項的初始行
             selected_menu_df = menus_df[menus_df['店家名稱'] == selected_menu_store].copy()
-            selected_menu_df = selected_menu_df[selected_menu_df['便當品項'] != '無']
+            
+            # 如果資料只有一筆且品項為 '無'，則只顯示這一筆
+            if len(selected_menu_df) == 1 and selected_menu_df['便當品項'].iloc[0] == '無':
+                df_to_edit = selected_menu_df
+            else:
+                # 否則，過濾掉品項為 '無' 的那一行，因為它只是一個佔位符
+                df_to_edit = selected_menu_df[selected_menu_df['便當品項'] != '無']
             
             edited_menus_df = st.data_editor(
-                selected_menu_df,
+                df_to_edit,
                 column_config={
                     "id": None,
                     "店家名稱": None,
@@ -89,15 +96,22 @@ else:
                 num_rows="dynamic",
                 use_container_width=True,
                 hide_index=True,
-                key=f"menu_data_editor_{selected_menu_store}" # 使用動態 key
+                key=f"menu_data_editor_{selected_menu_store}"
             )
             
             if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
-                remaining_menus_df = menus_df[menus_df['店家名稱'] != selected_menu_store]
+                # 確保我們從資料庫讀取完整的 DataFrame，而不只是從編輯器
+                all_menus_df = load_menus_from_db()
+
+                # 移除選定店家的所有舊品項（包括 '無' 的佔位符）
+                remaining_menus_df = all_menus_df[all_menus_df['店家名稱'] != selected_menu_store]
                 
+                # 處理編輯後的 DataFrame
                 edited_menus_df['店家名稱'] = selected_menu_store
+                # 過濾掉空的便當品項，只儲存有內容的品項
                 edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
                 
+                # 將剩下的品項和編輯後的品項合併
                 updated_all_menus_df = pd.concat([remaining_menus_df, edited_menus_df], ignore_index=True)
                 
                 update_menus_in_db(updated_all_menus_df)
