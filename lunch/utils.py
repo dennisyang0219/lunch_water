@@ -55,12 +55,11 @@ def _check_db_connection():
     conn = get_db_connection()
     if conn:
         try:
-            # 嘗試執行一個簡單的操作來檢查連接是否有效
             conn.cursor().execute("SELECT 1")
             return conn
         except (sqlite3.ProgrammingError, sqlite3.OperationalError):
-            st.cache_resource.clear() # 清除舊的無效連接快取
-            conn = get_db_connection() # 重新建立連接
+            st.cache_resource.clear()
+            conn = get_db_connection()
             return conn
     return None
 
@@ -138,7 +137,6 @@ def save_store_config(store_name):
         f.write(store_name)
 
 # 輔助函數：從檔案讀取店家設定
-@st.cache_data(ttl=3600)
 def load_store_config():
     if os.path.exists(STORE_CONFIG_FILE):
         with open(STORE_CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -151,7 +149,6 @@ def save_cutoff_time(time_obj):
         f.write(time_obj.strftime("%H:%M:%S"))
 
 # 輔助函數：從檔案讀取截止時間
-@st.cache_data(ttl=3600)
 def load_cutoff_time():
     if os.path.exists(CUTOFF_TIME_FILE):
         with open(CUTOFF_TIME_FILE, "r", encoding="utf-8") as f:
