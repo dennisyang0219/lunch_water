@@ -17,7 +17,7 @@ if "logged_in" not in st.session_state:
 
 if not st.session_state.logged_in:
     password = st.text_input("請輸入管理者密碼", type="password", key="login_password")
-    if password == "admin603":
+    if password == "admin123":
         st.session_state.logged_in = True
         st.rerun()
     elif password:
@@ -73,14 +73,13 @@ else:
             selected_menu_store = None
 
         if selected_menu_store:
-            # 獲取選定店家的所有品項，包括無品項的初始行
+            # 獲取選定店家的所有品項
             selected_menu_df = menus_df[menus_df['店家名稱'] == selected_menu_store].copy()
             
-            # 如果資料只有一筆且品項為 '無'，則只顯示這一筆
+            # 如果資料只有一筆且品項為 '無'，則只顯示這一筆，否則過濾掉 '無'
             if len(selected_menu_df) == 1 and selected_menu_df['便當品項'].iloc[0] == '無':
                 df_to_edit = selected_menu_df
             else:
-                # 否則，過濾掉品項為 '無' 的那一行，因為它只是一個佔位符
                 df_to_edit = selected_menu_df[selected_menu_df['便當品項'] != '無']
             
             edited_menus_df = st.data_editor(
@@ -100,10 +99,7 @@ else:
             )
             
             if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
-                # 確保我們從資料庫讀取完整的 DataFrame，而不只是從編輯器
                 all_menus_df = load_menus_from_db()
-
-                # 移除選定店家的所有舊品項（包括 '無' 的佔位符）
                 remaining_menus_df = all_menus_df[all_menus_df['店家名稱'] != selected_menu_store]
                 
                 # 處理編輯後的 DataFrame
@@ -111,7 +107,10 @@ else:
                 # 過濾掉空的便當品項，只儲存有內容的品項
                 edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
                 
-                # 將剩下的品項和編輯後的品項合併
+                # 如果編輯後沒有任何品項，則加入一個「無」的佔位符行
+                if edited_menus_df.empty:
+                    edited_menus_df = pd.DataFrame([{'店家名稱': selected_menu_store, '便當品項': '無', '價格': 0}])
+                
                 updated_all_menus_df = pd.concat([remaining_menus_df, edited_menus_df], ignore_index=True)
                 
                 update_menus_in_db(updated_all_menus_df)
@@ -154,6 +153,7 @@ else:
             if st.button("確認店家設定"):
                 save_store_config(selected_store)
                 st.success(f"✅ 已成功設定今日店家為：**{selected_store}**")
+                st.info("請回到主頁面並重新整理，以查看變更。")
                 st.rerun()
         else:
             st.info("請先在「菜單與店家管理」區塊新增店家。")
@@ -164,7 +164,6 @@ else:
         
         time_options = {
             "上午 8:50": time(8, 50),
-            "下午 11:50": time(23, 50),
             "下午 4:00": time(16, 0)
         }
         current_time_str = "上午 8:50" if current_cutoff_time == time(8, 50) else "下午 4:00"
@@ -179,6 +178,7 @@ else:
             selected_time_obj = time_options[new_cutoff_time_str]
             save_cutoff_time(selected_time_obj)
             st.success(f"✅ 已成功設定訂餐截止時間為：**{new_cutoff_time_str}**")
+            st.info("請回到主頁面並重新整理，以查看變更。")
             st.rerun()
 
     with tab3:
