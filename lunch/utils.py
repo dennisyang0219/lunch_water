@@ -44,7 +44,7 @@ def _initialize_database(conn):
 def get_db_connection():
     try:
         conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-        _initialize_database(conn) # 在這裡呼叫初始化
+        _initialize_database(conn)
         return conn
     except Exception as e:
         st.error(f"無法連線到資料庫: {e}")
@@ -83,7 +83,7 @@ def save_new_order_to_db(name, store, item, price):
               (name, store, item, price))
     conn.commit()
     load_orders_from_db.clear()
-
+    
 # 輔助函數：更新資料庫中的訂單
 def update_orders_in_db(df):
     conn = get_db_connection()
@@ -107,7 +107,12 @@ def update_menus_in_db(df):
     if conn is None: return
     df.to_sql('menus', conn, if_exists='replace', index=False)
     conn.commit()
-    # 這裡直接呼叫清空函式來強制快取失效
+    
+    # 這裡強制將資料庫寫入磁碟
+    conn.execute('PRAGMA wal_checkpoint(FULL);')
+    conn.close()
+    
+    # 清除快取以強制重新讀取
     load_menus_from_db.clear()
 
 # 輔助函數：清除所有訂單
