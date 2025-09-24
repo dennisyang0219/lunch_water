@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from datetime import time
+from datetime import time, datetime
 import sqlite3
 import streamlit as st
 
@@ -8,7 +8,7 @@ import streamlit as st
 DB_FILE = "lunch.db"
 # 其他檔案路徑
 STORE_CONFIG_FILE = "store_config.txt"
-CUTOFF_TIME_FILE = "cutoff_time.txt"
+CUTOFF_DATETIME_FILE = "cutoff_datetime.txt"
 
 # 輔助函數：連接資料庫 (使用 Streamlit 的單例模式)
 @st.cache_resource
@@ -39,7 +39,6 @@ def init_db():
             備註 TEXT DEFAULT ''
         )
     """)
-    # 修改 menus 資料表結構，新增電話與地址欄位
     c.execute("""
         CREATE TABLE IF NOT EXISTS menus (
             id INTEGER PRIMARY KEY,
@@ -60,7 +59,7 @@ def init_db():
 def load_orders_from_db():
     conn = get_db_connection()
     if conn is None:
-        return pd.DataFrame() # 返回空資料框
+        return pd.DataFrame()
     df = pd.read_sql_query("SELECT * FROM orders", conn)
     if '已付款' in df.columns:
         df['已付款'] = df['已付款'].astype(bool)
@@ -75,7 +74,7 @@ def load_orders_from_db():
 def load_menus_from_db():
     conn = get_db_connection()
     if conn is None:
-        return pd.DataFrame() # 返回空資料框
+        return pd.DataFrame()
     df = pd.read_sql_query("SELECT * FROM menus", conn)
     return df
 
@@ -136,22 +135,22 @@ def load_store_config():
             return f.read().strip()
     return None
 
-# 輔助函數：儲存截止時間到檔案
-def save_cutoff_time(time_obj):
-    with open(CUTOFF_TIME_FILE, "w", encoding="utf-8") as f:
-        f.write(time_obj.strftime("%H:%M:%S"))
+# 輔助函數：儲存截止日期和時間到檔案
+def save_cutoff_datetime(dt_obj):
+    with open(CUTOFF_DATETIME_FILE, "w", encoding="utf-8") as f:
+        f.write(dt_obj.isoformat())
     st.cache_data.clear()
 
-# 輔助函數：從檔案讀取截止時間
-def load_cutoff_time():
-    if os.path.exists(CUTOFF_TIME_FILE):
-        with open(CUTOFF_TIME_FILE, "r", encoding="utf-8") as f:
-            time_str = f.read().strip()
+# 輔助函數：從檔案讀取截止日期和時間
+def load_cutoff_datetime():
+    if os.path.exists(CUTOFF_DATETIME_FILE):
+        with open(CUTOFF_DATETIME_FILE, "r", encoding="utf-8") as f:
+            dt_str = f.read().strip()
             try:
-                return time.fromisoformat(time_str)
+                return datetime.fromisoformat(dt_str)
             except ValueError:
-                return time(12, 0)
-    return time(12, 0)
+                return datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    return datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
 
 # 初始化資料庫
 init_db()
