@@ -89,19 +89,15 @@ else:
                 num_rows="dynamic",
                 use_container_width=True,
                 hide_index=True,
-                key="menu_data_editor"
+                key=f"menu_data_editor_{selected_menu_store}" # 使用動態 key
             )
             
             if st.button(f"儲存「{selected_menu_store}」的菜單變更"):
-                # 從資料庫讀取完整的菜單 DataFrame
-                all_menus_df = load_menus_from_db()
+                remaining_menus_df = menus_df[menus_df['店家名稱'] != selected_menu_store]
                 
-                # 移除要被編輯的店家的舊菜單
-                remaining_menus_df = all_menus_df[all_menus_df['店家名稱'] != selected_menu_store]
-                
-                # 將編輯後的菜單與剩下的舊菜單合併
                 edited_menus_df['店家名稱'] = selected_menu_store
                 edited_menus_df = edited_menus_df[edited_menus_df['便當品項'] != '']
+                
                 updated_all_menus_df = pd.concat([remaining_menus_df, edited_menus_df], ignore_index=True)
                 
                 update_menus_in_db(updated_all_menus_df)
