@@ -26,13 +26,14 @@ else:
     all_store_names = sorted(menus_df['店家名稱'].unique().tolist())
     all_store_names = [name for name in all_store_names if name]
 
-# **新增的保護措施**：在頁面渲染前，強制清除相關的 session_state 鍵
+# **核心修復**：強制清空相關的 session_state 鍵
 if not all_store_names:
     if "selected_menu_store" in st.session_state:
         del st.session_state["selected_menu_store"]
     if "delete_store_selectbox" in st.session_state:
         del st.session_state["delete_store_selectbox"]
 else:
+    # 確保 session_state 中的值是有效的選項
     if "selected_menu_store" in st.session_state and st.session_state.selected_menu_store not in all_store_names:
         del st.session_state["selected_menu_store"]
     if "delete_store_selectbox" in st.session_state and st.session_state.delete_store_selectbox not in all_store_names:
@@ -156,6 +157,7 @@ else:
 
         # 刪除店家
         st.subheader("刪除店家")
+        # **關鍵改動**：在調用 st.selectbox 前檢查列表是否為空
         if all_store_names:
             if "delete_store_selectbox" not in st.session_state or st.session_state.delete_store_selectbox not in all_store_names:
                 st.session_state.delete_store_selectbox = all_store_names[0]
