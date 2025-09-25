@@ -11,16 +11,16 @@ import os
 st.title("👨‍💼 管理者後台")
 st.markdown("---")
 
-# 使用 session_state 來管理登入狀態
+# 使用 session_state 來管理登入狀態和頁籤狀態
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-    
-# 使用 session_state 來儲存選定的店家
-if "selected_menu_store" not in st.session_state:
-    st.session_state.selected_menu_store = None
-if "delete_store_selectbox" not in st.session_state:
-    st.session_state.delete_store_selectbox = None
 
+if "current_tab" not in st.session_state:
+    st.session_state.current_tab = "tab1"
+    
+def switch_tab(tab_name):
+    st.session_state.current_tab = tab_name
+    
 # 每次都從資料庫載入最新資料，確保狀態同步
 menus_df = load_menus_from_db()
 
@@ -45,7 +45,11 @@ else:
 
     with tab1:
         st.header("🏡 菜單與店家管理")
-        
+        if st.session_state.current_tab != "tab1":
+            st.session_state.selected_menu_store = None
+            st.session_state.delete_store_selectbox = None
+            switch_tab("tab1")
+
         # 新增店家
         st.subheader("新增店家")
         new_store_name = st.text_input("請輸入新店家名稱", key="new_store_name_input")
@@ -145,12 +149,7 @@ else:
         # 刪除店家
         st.subheader("刪除店家")
         if all_store_names:
-            # 修正此處的索引檢查，確保即使 selected_menu_store 改變也不會出錯
-            if st.session_state.delete_store_selectbox and st.session_state.delete_store_selectbox in all_store_names:
-                delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox)
-            else:
-                delete_store_index = 0
-            
+            delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox) if st.session_state.delete_store_selectbox in all_store_names else 0
             st.session_state.delete_store_selectbox = st.selectbox("選擇要刪除的店家", all_store_names, key="delete_store_selectbox", index=delete_store_index)
             
             if st.button("確認刪除店家", help="此操作會永久刪除店家及其所有菜單品項，無法復原。"):
@@ -163,10 +162,13 @@ else:
         else:
             st.info("目前沒有可供刪除的店家。")
 
-
     with tab2:
         st.header("⚙️ 今日訂餐設定")
-        
+        if st.session_state.current_tab != "tab2":
+            st.session_state.selected_menu_store = None
+            st.session_state.delete_store_selectbox = None
+            switch_tab("tab2")
+            
         selected_store_by_admin = load_store_config()
         current_cutoff_time = load_cutoff_time()
         
@@ -215,6 +217,11 @@ else:
 
     with tab3:
         st.header("📊 訂單總覽")
+        if st.session_state.current_tab != "tab3":
+            st.session_state.selected_menu_store = None
+            st.session_state.delete_store_selectbox = None
+            switch_tab("tab3")
+            
         orders_df = load_orders_from_db()
 
         if not orders_df.empty:
