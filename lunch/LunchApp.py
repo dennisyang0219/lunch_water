@@ -6,7 +6,7 @@ from utils import (
 )
 
 st.set_page_config(
-    page_title="便當點餐系統",
+    page_title="點餐系統",
     page_icon="🍱",
     layout="centered",
     initial_sidebar_state="expanded"
