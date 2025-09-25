@@ -61,9 +61,9 @@ else:
             with st.form("lunch_order_form"):
                 name = st.text_input("您的姓名", key="order_name")
                 
-                # 準備菜單選項
+                # 準備菜單選項，將價格轉換為整數
                 menu_options = store_menu.apply(
-                    lambda row: f"{row['便當品項']} (NT$ {row['價格']})",
+                    lambda row: f"{row['便當品項']} (NT$ {int(row['價格'])})",
                     axis=1
                 ).tolist()
                 
