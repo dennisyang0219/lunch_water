@@ -32,8 +32,17 @@ if not today_store_name or not all_stores:
     st.warning("⚠️ 管理員尚未設定今日店家，請稍候。")
     st.info("請聯絡管理員登入後台進行設定。")
 else:
+    # 載入選定店家的完整資訊
+    store_info_df = menus_df[menus_df['店家名稱'] == today_store_name]
+    store_address = store_info_df['店家地址'].iloc[0] if not store_info_df.empty and '店家地址' in store_info_df.columns else "無"
+    store_phone = store_info_df['店家電話'].iloc[0] if not store_info_df.empty and '店家電話' in store_info_df.columns else "無"
+
     st.header(f"今日便當店家：{today_store_name}")
     
+    with st.expander("ℹ️ 查看店家資訊"):
+        st.write(f"**地址**：{store_address}")
+        st.write(f"**電話**：{store_phone}")
+
     if cutoff_time.hour > 12:
         cutoff_time_str = f"下午 {cutoff_time.hour - 12:02d}:{cutoff_time.minute:02d}"
     elif cutoff_time.hour == 12:
@@ -74,6 +83,7 @@ else:
                         st.error("請輸入您的姓名。")
                     else:
                         selected_item_name = selected_item_str.split(' (NT$')[0]
+                        
                         selected_item_price = store_menu.loc[store_menu['便當品項'] == selected_item_name, '價格'].iloc[0]
 
                         try:
@@ -81,19 +91,3 @@ else:
                             st.success(f"🎉 訂單已送出！**{name}**，您點了 **{selected_item_name}**，價格 **NT$ {selected_item_price}**。")
                         except Exception as e:
                             st.error(f"送出訂單時發生錯誤: {e}")
-            
-    st.markdown("---")
-    st.subheader("我的訂單")
-    
-    orders_df = load_orders_from_db()
-    if not orders_df.empty:
-        my_orders_df = orders_df[orders_df['姓名'] == st.session_state.get('user_name', None)]
-        if not my_orders_df.empty:
-            my_orders_df['價格'] = pd.to_numeric(my_orders_df['價格'], errors='coerce').fillna(0).astype(int)
-            my_orders_df = my_orders_df[['便當品項', '價格', '備註']].copy()
-            st.table(my_orders_df)
-            st.markdown(f"#### **我的訂單總金額**：NT$ {my_orders_df['價格'].sum()}")
-        else:
-            st.info("您今天還沒有任何訂單。")
-    else:
-        st.info("您今天還沒有任何訂單。")
