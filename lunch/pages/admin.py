@@ -29,7 +29,7 @@ if "selected_menu_store" in st.session_state and st.session_state.selected_menu_
 
 if not st.session_state.logged_in:
     password = st.text_input("請輸入管理者密碼", type="password", key="login_password")
-    if password == "admin123":
+    if password == "admin603":
         st.session_state.logged_in = True
         st.rerun()
     elif password:
