@@ -60,7 +60,6 @@ else:
             with st.form("lunch_order_form"):
                 name = st.text_input("您的姓名", key="order_name")
                 
-                # 準備菜單選項，將價格轉換為整數
                 menu_options = store_menu.apply(
                     lambda row: f"{row['便當品項']} (NT$ {row['價格']})",
                     axis=1
@@ -68,7 +67,6 @@ else:
                 
                 selected_item_str = st.selectbox("選擇便當品項", options=menu_options, key="order_item")
                 
-                # 提交按鈕
                 submitted = st.form_submit_button("送出訂單")
                 
                 if submitted:
@@ -76,8 +74,6 @@ else:
                         st.error("請輸入您的姓名。")
                     else:
                         selected_item_name = selected_item_str.split(' (NT$')[0]
-                        
-                        # **核心修正**：直接從 DataFrame 中根據品項名稱查找價格
                         selected_item_price = store_menu.loc[store_menu['便當品項'] == selected_item_name, '價格'].iloc[0]
 
                         try:
