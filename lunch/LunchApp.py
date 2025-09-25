@@ -17,8 +17,14 @@ st.markdown("---")
 
 # 載入所有店家和菜單資訊
 menus_df = load_menus_from_db()
-all_stores = sorted(menus_df['店家名稱'].unique().tolist()) if not menus_df.empty else []
-all_stores = [s for s in all_stores if s] # 移除空字串
+
+# **關鍵修正**：在處理前先清洗 '價格' 欄位，將非數字和空值處理為 0
+if not menus_df.empty:
+    menus_df['價格'] = pd.to_numeric(menus_df['價格'], errors='coerce').fillna(0).astype(int)
+    all_stores = sorted(menus_df['店家名稱'].unique().tolist())
+    all_stores = [s for s in all_stores if s] # 移除空字串
+else:
+    all_stores = []
 
 # 載入今日店家和截止時間
 today_store_name = load_store_config()
@@ -63,7 +69,7 @@ else:
                 
                 # 準備菜單選項，將價格轉換為整數
                 menu_options = store_menu.apply(
-                    lambda row: f"{row['便當品項']} (NT$ {int(row['價格'])})",
+                    lambda row: f"{row['便當品項']} (NT$ {row['價格']})",
                     axis=1
                 ).tolist()
                 
@@ -77,8 +83,12 @@ else:
                         st.error("請輸入您的姓名。")
                     else:
                         selected_item_name = selected_item_str.split(' (NT$')[0]
-                        selected_item_price = int(selected_item_str.split('NT$ ')[-1].split(')')[0])
-                        
+                        # **關鍵修正**：直接從處理後的 DataFrame 中獲取價格
+                        selected_item_price = menus_df[
+                            (menus_df['店家名稱'] == today_store_name) & 
+                            (menus_df['便當品項'] == selected_item_name)
+                        ]['價格'].iloc[0]
+
                         try:
                             save_new_order_to_db(name, today_store_name, selected_item_name, selected_item_price)
                             st.success(f"🎉 訂單已送出！**{name}**，您點了 **{selected_item_name}**，價格 **NT$ {selected_item_price}**。")
