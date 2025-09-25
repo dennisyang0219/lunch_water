@@ -18,7 +18,6 @@ if "logged_in" not in st.session_state:
 # 每次都從資料庫載入最新資料，確保狀態同步
 menus_df = load_menus_from_db()
 
-# 確保 menus_df 不為空，以防止後續操作出錯
 if menus_df.empty:
     all_store_names = []
 else:
@@ -26,7 +25,8 @@ else:
     all_store_names = sorted(menus_df['店家名稱'].unique().tolist())
     all_store_names = [name for name in all_store_names if name]
 
-# **核心修復**：強制清空相關的 session_state 鍵
+# **核心修復**：在頁面渲染前，強制清除相關的 session_state 鍵
+# 這能確保在列表為空時，不會有殘留的舊值導致錯誤
 if not all_store_names:
     if "selected_menu_store" in st.session_state:
         del st.session_state["selected_menu_store"]
