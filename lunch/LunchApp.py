@@ -17,12 +17,10 @@ st.markdown("---")
 
 # 載入所有店家和菜單資訊
 menus_df = load_menus_from_db()
-
-# **關鍵修正**：在處理前先清洗 '價格' 欄位，將非數字和空值處理為 0
 if not menus_df.empty:
     menus_df['價格'] = pd.to_numeric(menus_df['價格'], errors='coerce').fillna(0).astype(int)
     all_stores = sorted(menus_df['店家名稱'].unique().tolist())
-    all_stores = [s for s in all_stores if s] # 移除空字串
+    all_stores = [s for s in all_stores if s]
 else:
     all_stores = []
 
@@ -36,7 +34,6 @@ if not today_store_name or not all_stores:
 else:
     st.header(f"今日便當店家：{today_store_name}")
     
-    # 將截止時間轉換為友善的12小時制格式
     if cutoff_time.hour > 12:
         cutoff_time_str = f"下午 {cutoff_time.hour - 12:02d}:{cutoff_time.minute:02d}"
     elif cutoff_time.hour == 12:
@@ -48,11 +45,7 @@ else:
         
     st.markdown(f"**訂餐截止時間**：`{cutoff_time_str}`")
     
-    # 這裡我們使用一個更為穩健的時間比較方法
-    # 將日期也考慮進去，避免跨日或時區問題
     current_datetime = datetime.now()
-    
-    # 創建一個包含今日日期的截止時間物件
     cutoff_datetime = datetime.combine(current_datetime.date(), cutoff_time)
     
     if current_datetime > cutoff_datetime:
@@ -83,11 +76,9 @@ else:
                         st.error("請輸入您的姓名。")
                     else:
                         selected_item_name = selected_item_str.split(' (NT$')[0]
-                        # **關鍵修正**：直接從處理後的 DataFrame 中獲取價格
-                        selected_item_price = menus_df[
-                            (menus_df['店家名稱'] == today_store_name) & 
-                            (menus_df['便當品項'] == selected_item_name)
-                        ]['價格'].iloc[0]
+                        
+                        # **核心修正**：直接從 DataFrame 中根據品項名稱查找價格
+                        selected_item_price = store_menu.loc[store_menu['便當品項'] == selected_item_name, '價格'].iloc[0]
 
                         try:
                             save_new_order_to_db(name, today_store_name, selected_item_name, selected_item_price)
