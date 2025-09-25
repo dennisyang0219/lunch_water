@@ -80,7 +80,6 @@ else:
         # 編輯菜單
         st.subheader("編輯店家菜單")
         if all_store_names:
-            # 確保 selected_menu_store 存在於列表中，否則將其設為 None
             if st.session_state.get('selected_menu_store') not in all_store_names:
                 st.session_state.selected_menu_store = None
                 
@@ -113,7 +112,8 @@ else:
             if len(selected_menu_df) == 1 and selected_menu_df['便當品項'].iloc[0] == '無':
                 df_to_edit = pd.DataFrame([{'便當品項': '', '價格': 0}])
             else:
-                df_to_edit = selected_menu_df[selected_menu_df['便當品當'] != '無'][['便當品項', '價格']].copy()
+                # 修正此處的欄位名稱筆誤
+                df_to_edit = selected_menu_df[selected_menu_df['便當品項'] != '無'][['便當品項', '價格']].copy()
             
             edited_menus_df = st.data_editor(
                 df_to_edit,
