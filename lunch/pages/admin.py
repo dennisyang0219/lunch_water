@@ -62,10 +62,8 @@ else:
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功新增店家：**{new_store_name}**")
                 
-                # **核心修正**: 新增店家後，將 session_state 設為新店家名稱
                 st.session_state.selected_menu_store = new_store_name
                 
-                # 重新載入資料並更新下拉選單
                 menus_df = load_menus_from_db()
                 menus_df['價格'] = pd.to_numeric(menus_df['價格'], errors='coerce').fillna(0).astype(int)
                 menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
@@ -79,7 +77,6 @@ else:
         
         st.subheader("編輯店家菜單")
         
-        # 確保下拉選單的值與資料同步
         if "selected_menu_store" not in st.session_state and all_store_names:
             st.session_state.selected_menu_store = all_store_names[0]
         
@@ -97,7 +94,6 @@ else:
         if st.session_state.selected_menu_store:
             selected_store_df = menus_df[menus_df['店家名稱'] == st.session_state.selected_menu_store]
             
-            # **核心修正**: 確保 DataFrame 非空再讀取地址和電話
             if not selected_store_df.empty:
                 current_address = selected_store_df['店家地址'].iloc[0] if '店家地址' in selected_store_df.columns else ''
                 current_phone = selected_store_df['店家電話'].iloc[0] if '店家電話' in selected_store_df.columns else ''
