@@ -6,7 +6,7 @@ from utils import (
 )
 
 st.set_page_config(
-    page_title="便當點餐系統",
+    page_title="點餐系統",
     page_icon="🍱",
     layout="centered",
     initial_sidebar_state="expanded"
@@ -29,6 +29,19 @@ if not today_store_name or not all_stores:
 else:
     st.header(f"今日便當店家：{today_store_name}")
     
+    # 獲取選定店家的詳細資訊
+    store_info = menus_df[menus_df['店家名稱'] == today_store_name].iloc[0]
+    store_address = store_info['店家地址']
+    store_phone = store_info['店家電話']
+    
+    # 顯示店家地址 (如果存在)
+    if store_address and str(store_address).strip():
+        st.write(f"**地址**：{store_address}")
+        
+    # 顯示店家電話 (如果存在)
+    if store_phone and str(store_phone).strip():
+        st.write(f"**電話**：{store_phone}")
+    
     # 將截止時間轉換為友善的12小時制格式
     if cutoff_time.hour > 12:
         cutoff_time_str = f"下午 {cutoff_time.hour - 12:02d}:{cutoff_time.minute:02d}"
@@ -42,7 +55,6 @@ else:
     st.markdown(f"**訂餐截止時間**：`{cutoff_time_str}`")
     
     # 這裡我們使用一個更為穩健的時間比較方法
-    # 將日期也考慮進去，避免跨日或時區問題
     current_datetime = datetime.now()
     
     # 創建一個包含今日日期的截止時間物件
