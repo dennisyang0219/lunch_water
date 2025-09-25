@@ -43,9 +43,9 @@ else:
         st.write(f"**地址**：{store_address}")
         st.write(f"**電話**：{store_phone}")
 
-    # 取得今天的日期，並格式化為中文
-    current_datetime = datetime.now()
-    today_date_str = f"今天 {current_datetime.month} 月 {current_datetime.day} 日"
+    # 直接將伺服器時間加上 8 小時，轉換為台灣時間
+    current_datetime_tw = datetime.utcnow() + timedelta(hours=8)
+    today_date_str = f"今天 {current_datetime_tw.month} 月 {current_datetime_tw.day} 日"
 
     # 格式化截止時間
     if cutoff_time.hour > 12:
@@ -58,10 +58,15 @@ else:
         cutoff_time_str = f"上午 {cutoff_time.hour:02d}:{cutoff_time.minute:02d}"
         
     st.markdown(f"**訂餐截止時間**：`{today_date_str} {cutoff_time_str}`")
+
+    # --- 偵錯資訊 ---
+    # 使用台灣時間的日期與截止時間進行比對
+    cutoff_datetime_tw = datetime.combine(current_datetime_tw.date(), cutoff_time)
     
-    cutoff_datetime = datetime.combine(current_datetime.date(), cutoff_time)
+    st.info(f"偵錯資訊：\n\n**目前台灣時間**：`{current_datetime_tw}`\n\n**截止台灣時間**：`{cutoff_datetime_tw}`")
+    # --- 偵錯資訊 ---
     
-    if current_datetime > cutoff_datetime:
+    if current_datetime_tw > cutoff_datetime_tw:
         st.error("⏳ 訂餐時間已過，無法再新增訂單。")
     else:
         store_menu = menus_df[menus_df['店家名稱'] == today_store_name]
