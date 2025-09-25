@@ -145,8 +145,8 @@ else:
         # 刪除店家
         st.subheader("刪除店家")
         if all_store_names:
-            # 修正此處的索引檢查
-            if st.session_state.delete_store_selectbox in all_store_names:
+            # 修正此處的索引檢查，確保即使 selected_menu_store 改變也不會出錯
+            if st.session_state.delete_store_selectbox and st.session_state.delete_store_selectbox in all_store_names:
                 delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox)
             else:
                 delete_store_index = 0
