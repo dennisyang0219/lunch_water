@@ -6,7 +6,7 @@ from utils import (
 )
 
 st.set_page_config(
-    page_title="點餐系統",
+    page_title="便當點餐系統",
     page_icon="🍱",
     layout="centered",
     initial_sidebar_state="expanded"
@@ -29,10 +29,17 @@ if not today_store_name or not all_stores:
 else:
     st.header(f"今日便當店家：{today_store_name}")
     
-    # 獲取選定店家的詳細資訊
-    store_info = menus_df[menus_df['店家名稱'] == today_store_name].iloc[0]
-    store_address = store_info['店家地址']
-    store_phone = store_info['店家電話']
+    # 從資料庫中讀取該店家的完整資訊
+    store_info_df = menus_df[menus_df['店家名稱'] == today_store_name]
+    
+    # 確保資料不為空且有該欄位
+    if not store_info_df.empty:
+        # 取得店家地址和電話，並移除可能的 NaN 值
+        store_address = store_info_df['店家地址'].iloc[0] if '店家地址' in store_info_df.columns and not pd.isna(store_info_df['店家地址'].iloc[0]) else None
+        store_phone = store_info_df['店家電話'].iloc[0] if '店家電話' in store_info_df.columns and not pd.isna(store_info_df['店家電話'].iloc[0]) else None
+    else:
+        store_address = None
+        store_phone = None
     
     # 顯示店家地址 (如果存在)
     if store_address and str(store_address).strip():
