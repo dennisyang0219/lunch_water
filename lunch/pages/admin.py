@@ -159,7 +159,7 @@ else:
         st.subheader("刪除店家")
         if all_store_names:
             delete_store_index = 0
-            if st.session_state.delete_store_selectbox in all_store_names:
+            if st.session_state.delete_store_selectbox and st.session_state.delete_store_selectbox in all_store_names:
                 delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox)
             
             st.session_state.delete_store_selectbox = st.selectbox("選擇要刪除的店家", all_store_names, key="delete_store_selectbox", index=delete_store_index)
