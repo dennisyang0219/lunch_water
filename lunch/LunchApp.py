@@ -57,8 +57,11 @@ else:
         cutoff_time_str = f"上午 {cutoff_time.hour:02d}:{cutoff_time.minute:02d}"
         
     st.markdown(f"**訂餐截止時間**：`{today_date_str} {cutoff_time_str}`")
-    
+
+    # --- 偵錯資訊 ---
     cutoff_datetime = datetime.combine(current_datetime.date(), cutoff_time)
+    st.info(f"偵錯資訊：\n\n**目前時間**：`{current_datetime}`\n\n**截止時間**：`{cutoff_datetime}`")
+    # --- 偵錯資訊 ---
     
     if current_datetime > cutoff_datetime:
         st.error("⏳ 訂餐時間已過，無法再新增訂單。")
