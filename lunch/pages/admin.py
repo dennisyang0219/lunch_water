@@ -4,18 +4,16 @@ from datetime import time
 from utils import (
     load_store_config, save_store_config, load_cutoff_time, save_cutoff_time, 
     load_orders_from_db, update_orders_in_db, clear_all_orders_in_db,
-    delete_orders_from_db, load_menus_from_db, update_menus_in_db
+    delete_orders_from_db, load_menus_from_db, update_menus_in_db, delete_store_from_db
 )
 import os
 
 st.title("👨‍💼 管理者後台")
 st.markdown("---")
 
-# 使用 session_state 來管理登入狀態
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     
-# 每次都從資料庫載入最新資料，確保狀態同步
 menus_df = load_menus_from_db()
 
 if menus_df.empty:
@@ -41,12 +39,11 @@ else:
         st.session_state.logged_in = False
         st.rerun()
     
-    tab1, tab2, tab3 = st.tabs(["🏡 菜單與店家管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🏡 菜單管理", "⚙️ 今日訂餐設定", "📊 訂單總覽", "🗑️ 店家管理與刪除"])
 
     with tab1:
-        st.header("🏡 菜單與店家管理")
+        st.header("🏡 菜單管理")
         
-        # 簡化新增店家流程，只留下名稱
         st.subheader("新增店家")
         new_store_name = st.text_input("請輸入新店家名稱", key="new_store_name_input")
         
@@ -61,7 +58,6 @@ else:
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功新增店家：**{new_store_name}**")
                 
-                # 新增店家後自動跳轉到其編輯介面
                 st.session_state.selected_menu_store = new_store_name
                 
                 menus_df = load_menus_from_db()
@@ -75,7 +71,6 @@ else:
         
         st.markdown("---")
         
-        # 編輯店家菜單與地址電話
         st.subheader("編輯店家菜單")
         
         if "selected_menu_store" not in st.session_state and all_store_names:
@@ -175,7 +170,7 @@ else:
                 st.info("請回到主頁面並重新整理，以查看變更。")
                 st.rerun()
         else:
-            st.info("請先在「菜單與店家管理」區塊新增店家。")
+            st.info("請先在「菜單管理」區塊新增店家。")
 
         st.markdown("---")
 
@@ -280,3 +275,24 @@ else:
             clear_all_orders_in_db()
             st.success("✅ 所有訂單已成功清除！")
             st.rerun()
+
+    with tab4:
+        st.header("🗑️ 店家管理與刪除")
+        
+        if all_store_names:
+            stores_to_delete = st.multiselect(
+                "請選擇要刪除的店家 (可多選)",
+                options=all_store_names
+            )
+            
+            if st.button("刪除已選取的店家"):
+                if stores_to_delete:
+                    # 執行刪除操作
+                    for store_name in stores_to_delete:
+                        delete_store_from_db(store_name)
+                    st.success(f"✅ 已成功刪除選取的店家：{', '.join(stores_to_delete)}")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ 請至少選擇一個店家。")
+        else:
+            st.info("目前沒有任何店家。")
