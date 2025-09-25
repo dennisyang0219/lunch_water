@@ -6,12 +6,6 @@ from datetime import time, datetime, timedelta
 import pytz
 import tzlocal
 
-# 使用 tzlocal 獲取本地時區，通常會是 'Asia/Taipei'
-try:
-    LOCAL_TZ = tzlocal.get_localzone()
-except:
-    LOCAL_TZ = pytz.timezone('Asia/Taipei')
-
 DB_PATH = 'data/lunch_orders.db'
 
 # 確保資料庫目錄存在
@@ -91,7 +85,7 @@ def save_new_order_to_db(name, store_name, item, price):
         price = 0
 
     # 儲存為本地時區的時間
-    local_time = datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    local_time = datetime.now(pytz.timezone('Asia/Taipei')).strftime("%Y-%m-%d %H:%M:%S")
 
     order_data = (name, store_name, item, price, 1, '', local_time, 0, 0, 0)
     c.execute("INSERT INTO orders (姓名, 店家名稱, 便當品項, 價格, 數量, 備註, 時間, 已付款, 選取, 刪除) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", order_data)
