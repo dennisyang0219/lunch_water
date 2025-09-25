@@ -83,7 +83,6 @@ else:
             st.session_state.selected_menu_store = None
 
         if st.session_state.selected_menu_store:
-            # 獲取選定店家的詳細資訊，以預填入編輯框
             selected_store_df = menus_df[menus_df['店家名稱'] == st.session_state.selected_menu_store]
             if not selected_store_df.empty:
                 current_address = selected_store_df['店家地址'].iloc[0] if '店家地址' in selected_store_df.columns else ''
@@ -92,11 +91,9 @@ else:
                 current_address = ''
                 current_phone = ''
 
-            # 獨立的輸入框來編輯地址和電話
             edited_address = st.text_input("店家地址", value=current_address, key="edited_address")
             edited_phone = st.text_input("店家電話", value=current_phone, key="edited_phone")
 
-            # 獲取選定店家的菜單品項
             selected_menu_df = menus_df[menus_df['店家名稱'] == st.session_state.selected_menu_store].copy()
             
             if len(selected_menu_df) == 1 and selected_menu_df['便當品項'].iloc[0] == '無':
@@ -148,7 +145,12 @@ else:
         # 刪除店家
         st.subheader("刪除店家")
         if all_store_names:
-            delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox) if st.session_state.delete_store_selectbox in all_store_names else 0
+            # 修正此處的索引檢查
+            if st.session_state.delete_store_selectbox in all_store_names:
+                delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox)
+            else:
+                delete_store_index = 0
+            
             st.session_state.delete_store_selectbox = st.selectbox("選擇要刪除的店家", all_store_names, key="delete_store_selectbox", index=delete_store_index)
             
             if st.button("確認刪除店家", help="此操作會永久刪除店家及其所有菜單品項，無法復原。"):
