@@ -82,7 +82,7 @@ else:
         st.subheader("編輯店家菜單")
         if all_store_names:
             selected_menu_store_index = 0
-            if st.session_state.selected_menu_store in all_store_names:
+            if st.session_state.selected_menu_store and st.session_state.selected_menu_store in all_store_names:
                 selected_menu_store_index = all_store_names.index(st.session_state.selected_menu_store)
             
             st.session_state.selected_menu_store = st.selectbox(
@@ -159,6 +159,7 @@ else:
         st.subheader("刪除店家")
         if all_store_names:
             delete_store_index = 0
+            # 只有當 session_state 的值存在且在列表中，才設定索引
             if st.session_state.delete_store_selectbox and st.session_state.delete_store_selectbox in all_store_names:
                 delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox)
             
@@ -168,6 +169,7 @@ else:
                 updated_menus_df = menus_df[menus_df['店家名稱'] != st.session_state.delete_store_selectbox]
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功刪除店家：**{st.session_state.delete_store_selectbox}**")
+                # 刪除後重置 session_state
                 st.session_state.selected_menu_store = None
                 st.session_state.delete_store_selectbox = None
                 st.rerun()
