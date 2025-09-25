@@ -2,7 +2,15 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import os
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
+import pytz
+import tzlocal
+
+# 使用 tzlocal 獲取本地時區，通常會是 'Asia/Taipei'
+try:
+    LOCAL_TZ = tzlocal.get_localzone()
+except:
+    LOCAL_TZ = pytz.timezone('Asia/Taipei')
 
 DB_PATH = 'data/lunch_orders.db'
 
@@ -13,7 +21,7 @@ def init_db():
     """初始化資料庫並創建表格（如果不存在）"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY,
@@ -29,7 +37,7 @@ def init_db():
             刪除 BOOLEAN
         )
     ''')
-    
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS menus (
             id INTEGER PRIMARY KEY,
@@ -40,14 +48,14 @@ def init_db():
             價格 INTEGER
         )
     ''')
-    
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS config (
             key TEXT PRIMARY KEY,
             value TEXT
         )
     ''')
-    
+
     conn.commit()
     conn.close()
 
@@ -75,16 +83,19 @@ def save_new_order_to_db(name, store_name, item, price):
     """將單筆新訂單添加到資料庫"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    
+
     # 確保價格是數字，避免寫入錯誤值
     try:
         price = int(price)
     except (ValueError, TypeError):
         price = 0
-        
-    order_data = (name, store_name, item, price, 1, '', datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0, 0, 0)
+
+    # 儲存為本地時區的時間
+    local_time = datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
+
+    order_data = (name, store_name, item, price, 1, '', local_time, 0, 0, 0)
     c.execute("INSERT INTO orders (姓名, 店家名稱, 便當品項, 價格, 數量, 備註, 時間, 已付款, 選取, 刪除) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", order_data)
-    
+
     conn.commit()
     conn.close()
 
@@ -162,7 +173,7 @@ def save_store_config(store_name):
     c.execute("REPLACE INTO config (key, value) VALUES ('today_store', ?)", (store_name,))
     conn.commit()
     conn.close()
-    
+
 def load_cutoff_time():
     """讀取截止時間設定"""
     conn = sqlite3.connect(DB_PATH)
