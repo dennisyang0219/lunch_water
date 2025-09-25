@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import os
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
 
 DB_PATH = 'data/lunch_orders.db'
 
@@ -82,7 +82,10 @@ def save_new_order_to_db(name, store_name, item, price):
     except (ValueError, TypeError):
         price = 0
         
-    order_data = (name, store_name, item, price, 1, '', datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0, 0, 0)
+    # 儲存為本地時區的時間
+    local_time = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+    
+    order_data = (name, store_name, item, price, 1, '', local_time, 0, 0, 0)
     c.execute("INSERT INTO orders (姓名, 店家名稱, 便當品項, 價格, 數量, 備註, 時間, 已付款, 選取, 刪除) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", order_data)
     
     conn.commit()
