@@ -21,17 +21,14 @@ menus_df = load_menus_from_db()
 if menus_df.empty:
     all_store_names = []
 else:
-    # 確保價格欄位為數字
     menus_df['價格'] = pd.to_numeric(menus_df['價格'], errors='coerce').fillna(0).astype(int)
     menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
     all_store_names = sorted(menus_df['店家名稱'].unique().tolist())
     all_store_names = [name for name in all_store_names if name]
 
-# 確保 session_state 中的值是有效的選項
 if "selected_menu_store" in st.session_state and st.session_state.selected_menu_store not in all_store_names:
     del st.session_state["selected_menu_store"]
 
-# 登入邏輯
 if not st.session_state.logged_in:
     password = st.text_input("請輸入管理者密碼", type="password", key="login_password")
     if password == "admin123":
@@ -49,7 +46,6 @@ else:
     with tab1:
         st.header("🏡 菜單與店家管理")
         
-        # 新增店家
         st.subheader("新增店家")
         new_store_name = st.text_input("請輸入新店家名稱", key="new_store_name_input")
         new_store_address = st.text_input("請輸入店家地址", key="new_store_address_input")
@@ -65,7 +61,6 @@ else:
                 updated_menus_df = pd.concat([menus_df, new_row], ignore_index=True)
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功新增店家：**{new_store_name}**")
-                # 新增後重新讀取資料，確保 all_store_names 更新
                 menus_df = load_menus_from_db()
                 menus_df['價格'] = pd.to_numeric(menus_df['價格'], errors='coerce').fillna(0).astype(int)
                 menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
@@ -77,7 +72,6 @@ else:
         
         st.markdown("---")
         
-        # 編輯菜單
         st.subheader("編輯店家菜單")
         if all_store_names:
             if "selected_menu_store" not in st.session_state or st.session_state.selected_menu_store not in all_store_names:
