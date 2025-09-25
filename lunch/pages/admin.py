@@ -11,13 +11,18 @@ import os
 st.title("👨‍💼 管理者後台")
 st.markdown("---")
 
-# 使用 session_state 來管理登入狀態和頁籤狀態
+# 使用 session_state 來管理登入狀態
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-
+    
+# 使用 session_state 來儲存選定的店家
+if "selected_menu_store" not in st.session_state:
+    st.session_state.selected_menu_store = None
+if "delete_store_selectbox" not in st.session_state:
+    st.session_state.delete_store_selectbox = None
 if "current_tab" not in st.session_state:
     st.session_state.current_tab = "tab1"
-    
+
 def switch_tab(tab_name):
     st.session_state.current_tab = tab_name
     
@@ -75,7 +80,12 @@ else:
         # 編輯菜單
         st.subheader("編輯店家菜單")
         if all_store_names:
+            # 確保 selected_menu_store 存在於列表中，否則將其設為 None
+            if st.session_state.get('selected_menu_store') not in all_store_names:
+                st.session_state.selected_menu_store = None
+                
             selected_menu_store_index = all_store_names.index(st.session_state.selected_menu_store) if st.session_state.selected_menu_store in all_store_names else 0
+            
             st.session_state.selected_menu_store = st.selectbox(
                 "請選擇要編輯菜單的店家",
                 options=all_store_names,
@@ -103,7 +113,7 @@ else:
             if len(selected_menu_df) == 1 and selected_menu_df['便當品項'].iloc[0] == '無':
                 df_to_edit = pd.DataFrame([{'便當品項': '', '價格': 0}])
             else:
-                df_to_edit = selected_menu_df[selected_menu_df['便當品項'] != '無'][['便當品項', '價格']].copy()
+                df_to_edit = selected_menu_df[selected_menu_df['便當品當'] != '無'][['便當品項', '價格']].copy()
             
             edited_menus_df = st.data_editor(
                 df_to_edit,
@@ -149,7 +159,11 @@ else:
         # 刪除店家
         st.subheader("刪除店家")
         if all_store_names:
+            if st.session_state.get('delete_store_selectbox') not in all_store_names:
+                st.session_state.delete_store_selectbox = None
+            
             delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox) if st.session_state.delete_store_selectbox in all_store_names else 0
+            
             st.session_state.delete_store_selectbox = st.selectbox("選擇要刪除的店家", all_store_names, key="delete_store_selectbox", index=delete_store_index)
             
             if st.button("確認刪除店家", help="此操作會永久刪除店家及其所有菜單品項，無法復原。"):
@@ -161,6 +175,7 @@ else:
                 st.rerun()
         else:
             st.info("目前沒有可供刪除的店家。")
+
 
     with tab2:
         st.header("⚙️ 今日訂餐設定")
