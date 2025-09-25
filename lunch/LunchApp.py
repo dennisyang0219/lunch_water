@@ -6,13 +6,14 @@ from utils import (
 )
 
 st.set_page_config(
-    page_title="點餐系統",
+    page_title="便當點餐系統",
     page_icon="🍱",
     layout="centered",
     initial_sidebar_state="expanded"
 )
 
-
+st.title("🍱 便當點餐系統")
+st.markdown("---")
 
 # 載入所有店家和菜單資訊
 menus_df = load_menus_from_db()
@@ -42,6 +43,11 @@ else:
         st.write(f"**地址**：{store_address}")
         st.write(f"**電話**：{store_phone}")
 
+    # 取得今天的日期，並格式化為中文
+    current_datetime = datetime.now()
+    today_date_str = f"今天 {current_datetime.month} 月 {current_datetime.day} 日"
+
+    # 格式化截止時間
     if cutoff_time.hour > 12:
         cutoff_time_str = f"下午 {cutoff_time.hour - 12:02d}:{cutoff_time.minute:02d}"
     elif cutoff_time.hour == 12:
@@ -51,9 +57,8 @@ else:
     else:
         cutoff_time_str = f"上午 {cutoff_time.hour:02d}:{cutoff_time.minute:02d}"
         
-    st.markdown(f"**訂餐截止時間**：`{cutoff_time_str}`")
+    st.markdown(f"**訂餐截止時間**：`{today_date_str} {cutoff_time_str}`")
     
-    current_datetime = datetime.now()
     cutoff_datetime = datetime.combine(current_datetime.date(), cutoff_time)
     
     if current_datetime > cutoff_datetime:
