@@ -14,12 +14,14 @@ except pytz.UnknownTimeZoneError:
     LOCAL_TZ = pytz.timezone('Asia/Taipei')
 
 st.set_page_config(
-    page_title="點餐系統",
+    page_title="便當點餐系統",
     page_icon="🍱",
     layout="centered",
     initial_sidebar_state="expanded"
 )
 
+st.title("🍱 便當點餐系統")
+st.markdown("---")
 
 # 載入所有店家和菜單資訊
 menus_df = load_menus_from_db()
@@ -50,8 +52,8 @@ else:
         st.write(f"**電話**：{store_phone}")
 
     # 取得本地時區的時間
-    current_datetime = datetime.now(LOCAL_TZ)
-    today_date_str = f"今天 {current_datetime.month} 月 {current_datetime.day} 日"
+    current_datetime_local = datetime.now(LOCAL_TZ)
+    today_date_str = f"今天 {current_datetime_local.month} 月 {current_datetime_local.day} 日"
 
     # 格式化截止時間
     if cutoff_time.hour > 12:
@@ -67,11 +69,13 @@ else:
 
     # --- 偵錯資訊 ---
     # 修正時區處理方式，將截止時間轉換為本地時區的 datetime 物件
-    cutoff_datetime = LOCAL_TZ.localize(datetime.combine(current_datetime.date(), cutoff_time))
-    st.info(f"偵錯資訊：\n\n**目前本地時間**：`{current_datetime}`\n\n**截止本地時間**：`{cutoff_datetime}`")
+    naive_cutoff_datetime = datetime.combine(current_datetime_local.date(), cutoff_time)
+    cutoff_datetime_local = LOCAL_TZ.localize(naive_cutoff_datetime)
+    
+    st.info(f"偵錯資訊：\n\n**目前本地時間**：`{current_datetime_local}`\n\n**截止本地時間**：`{cutoff_datetime_local}`")
     # --- 偵錯資訊 ---
     
-    if current_datetime > cutoff_datetime:
+    if current_datetime_local > cutoff_datetime_local:
         st.error("⏳ 訂餐時間已過，無法再新增訂單。")
     else:
         store_menu = menus_df[menus_df['店家名稱'] == today_store_name]
