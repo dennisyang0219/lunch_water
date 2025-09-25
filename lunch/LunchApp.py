@@ -62,7 +62,7 @@ else:
     # 使用台灣時間的日期與截止時間進行比對
     cutoff_datetime_tw = datetime.combine(current_datetime_tw.date(), cutoff_time)
     
-    st.info(f"偵錯資訊：\n\n**目前台灣時間**：`{current_datetime_tw}`\n\n**截止台灣時間**：`{cutoff_datetime_tw}`")
+    #st.info(f"偵錯資訊：\n\n**目前台灣時間**：`{current_datetime_tw}`\n\n**截止台灣時間**：`{cutoff_datetime_tw}`")
     # --- 偵錯資訊 ---
     
     if current_datetime_tw > cutoff_datetime_tw:
