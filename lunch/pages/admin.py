@@ -81,7 +81,9 @@ else:
         # 編輯菜單
         st.subheader("編輯店家菜單")
         if all_store_names:
-            selected_menu_store_index = all_store_names.index(st.session_state.selected_menu_store) if st.session_state.selected_menu_store in all_store_names else 0
+            selected_menu_store_index = 0
+            if st.session_state.selected_menu_store in all_store_names:
+                selected_menu_store_index = all_store_names.index(st.session_state.selected_menu_store)
             
             st.session_state.selected_menu_store = st.selectbox(
                 "請選擇要編輯菜單的店家",
@@ -156,7 +158,9 @@ else:
         # 刪除店家
         st.subheader("刪除店家")
         if all_store_names:
-            delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox) if st.session_state.delete_store_selectbox in all_store_names else 0
+            delete_store_index = 0
+            if st.session_state.delete_store_selectbox in all_store_names:
+                delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox)
             
             st.session_state.delete_store_selectbox = st.selectbox("選擇要刪除的店家", all_store_names, key="delete_store_selectbox", index=delete_store_index)
             
