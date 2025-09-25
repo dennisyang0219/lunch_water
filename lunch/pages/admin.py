@@ -21,6 +21,8 @@ menus_df = load_menus_from_db()
 if menus_df.empty:
     all_store_names = []
 else:
+    # 確保價格欄位為數字
+    menus_df['價格'] = pd.to_numeric(menus_df['價格'], errors='coerce').fillna(0).astype(int)
     menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
     all_store_names = sorted(menus_df['店家名稱'].unique().tolist())
     all_store_names = [name for name in all_store_names if name]
@@ -63,6 +65,12 @@ else:
                 updated_menus_df = pd.concat([menus_df, new_row], ignore_index=True)
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功新增店家：**{new_store_name}**")
+                # 新增後重新讀取資料，確保 all_store_names 更新
+                menus_df = load_menus_from_db()
+                menus_df['價格'] = pd.to_numeric(menus_df['價格'], errors='coerce').fillna(0).astype(int)
+                menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
+                all_store_names = sorted(menus_df['店家名稱'].unique().tolist())
+                all_store_names = [name for name in all_store_names if name]
                 st.rerun()
             else:
                 st.warning("⚠️ 請輸入有效的店家名稱，且店家名稱不能重複。")
@@ -98,9 +106,6 @@ else:
 
             selected_menu_df = menus_df[menus_df['店家名稱'] == st.session_state.selected_menu_store].copy()
             
-            # 確保價格欄位為數字，並處理 NaN
-            selected_menu_df['價格'] = pd.to_numeric(selected_menu_df['價格'], errors='coerce').fillna(0).astype(int)
-
             if len(selected_menu_df) == 1 and selected_menu_df['便當品項'].iloc[0] == '無':
                 df_to_edit = pd.DataFrame([{'便當品項': '', '價格': 0}])
             else:
@@ -200,7 +205,6 @@ else:
         orders_df = load_orders_from_db()
 
         if not orders_df.empty:
-            # **關鍵修復**：強制將價格欄位轉換為數字
             orders_df['價格'] = pd.to_numeric(orders_df['價格'], errors='coerce').fillna(0).astype(int)
 
             st.subheader("所有已送出訂單")
