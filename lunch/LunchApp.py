@@ -12,8 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("🍱 便當點餐系統")
-st.markdown("---")
+
 
 # 載入所有店家和菜單資訊
 menus_df = load_menus_from_db()
