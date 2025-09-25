@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import time, datetime, timedelta
 from utils import (
-    load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db
+    load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db, load_orders_from_db
 )
 
 st.set_page_config(
@@ -85,3 +85,19 @@ else:
                             st.success(f"🎉 訂單已送出！**{name}**，您點了 **{selected_item_name}**，價格 **NT$ {selected_item_price}**。")
                         except Exception as e:
                             st.error(f"送出訂單時發生錯誤: {e}")
+            
+    st.markdown("---")
+    st.subheader("我的訂單")
+    
+    orders_df = load_orders_from_db()
+    if not orders_df.empty:
+        my_orders_df = orders_df[orders_df['姓名'] == st.session_state.get('user_name', None)]
+        if not my_orders_df.empty:
+            my_orders_df['價格'] = pd.to_numeric(my_orders_df['價格'], errors='coerce').fillna(0).astype(int)
+            my_orders_df = my_orders_df[['便當品項', '價格', '備註']].copy()
+            st.table(my_orders_df)
+            st.markdown(f"#### **我的訂單總金額**：NT$ {my_orders_df['價格'].sum()}")
+        else:
+            st.info("您今天還沒有任何訂單。")
+    else:
+        st.info("您今天還沒有任何訂單。")
