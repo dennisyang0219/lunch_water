@@ -15,33 +15,29 @@ st.markdown("---")
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     
-# 使用 session_state 來儲存選定的店家
-if "selected_menu_store" not in st.session_state:
-    st.session_state.selected_menu_store = None
-if "delete_store_selectbox" not in st.session_state:
-    st.session_state.delete_store_selectbox = None
-if "current_tab" not in st.session_state:
-    st.session_state.current_tab = "tab1"
-
-def switch_tab(tab_name):
-    if st.session_state.current_tab != tab_name:
-        st.session_state.selected_menu_store = None
-        st.session_state.delete_store_selectbox = None
-    st.session_state.current_tab = tab_name
-    
 # 每次都從資料庫載入最新資料，確保狀態同步
 menus_df = load_menus_from_db()
-if not menus_df.empty:
-    menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
-all_store_names = sorted(menus_df['店家名稱'].unique().tolist()) if not menus_df.empty else []
-all_store_names = [name for name in all_store_names if name]
 
-# **核心修復**：強制清空 session_state 以防止錯誤
+# 確保 menus_df 不為空，以防止後續操作出錯
+if menus_df.empty:
+    all_store_names = []
+else:
+    menus_df['店家名稱'] = menus_df['店家名稱'].fillna('')
+    all_store_names = sorted(menus_df['店家名稱'].unique().tolist())
+    all_store_names = [name for name in all_store_names if name]
+
+# **新增的保護措施**：在頁面渲染前，強制清除相關的 session_state 鍵
 if not all_store_names:
     if "selected_menu_store" in st.session_state:
         del st.session_state["selected_menu_store"]
     if "delete_store_selectbox" in st.session_state:
         del st.session_state["delete_store_selectbox"]
+else:
+    if "selected_menu_store" in st.session_state and st.session_state.selected_menu_store not in all_store_names:
+        del st.session_state["selected_menu_store"]
+    if "delete_store_selectbox" in st.session_state and st.session_state.delete_store_selectbox not in all_store_names:
+        del st.session_state["delete_store_selectbox"]
+
 
 # 登入邏輯
 if not st.session_state.logged_in:
@@ -59,7 +55,6 @@ else:
     tab1, tab2, tab3 = st.tabs(["🏡 菜單與店家管理", "⚙️ 今日訂餐設定", "📊 訂單總覽"])
 
     with tab1:
-        switch_tab("tab1")
         st.header("🏡 菜單與店家管理")
         
         # 新增店家
@@ -87,15 +82,13 @@ else:
         # 編輯菜單
         st.subheader("編輯店家菜單")
         if all_store_names:
-            selected_menu_store_index = 0
-            if st.session_state.selected_menu_store and st.session_state.selected_menu_store in all_store_names:
-                selected_menu_store_index = all_store_names.index(st.session_state.selected_menu_store)
+            if "selected_menu_store" not in st.session_state or st.session_state.selected_menu_store not in all_store_names:
+                st.session_state.selected_menu_store = all_store_names[0]
             
             st.session_state.selected_menu_store = st.selectbox(
                 "請選擇要編輯菜單的店家",
                 options=all_store_names,
-                key="store_select_box",
-                index=selected_menu_store_index
+                key="store_select_box"
             )
         else:
             st.info("請先新增一個店家。")
@@ -164,26 +157,24 @@ else:
         # 刪除店家
         st.subheader("刪除店家")
         if all_store_names:
-            delete_store_index = 0
-            if st.session_state.delete_store_selectbox and st.session_state.delete_store_selectbox in all_store_names:
-                delete_store_index = all_store_names.index(st.session_state.delete_store_selectbox)
+            if "delete_store_selectbox" not in st.session_state or st.session_state.delete_store_selectbox not in all_store_names:
+                st.session_state.delete_store_selectbox = all_store_names[0]
             
-            st.session_state.delete_store_selectbox = st.selectbox("選擇要刪除的店家", all_store_names, key="delete_store_selectbox", index=delete_store_index)
+            st.session_state.delete_store_selectbox = st.selectbox("選擇要刪除的店家", all_store_names, key="delete_store_selectbox")
             
             if st.button("確認刪除店家", help="此操作會永久刪除店家及其所有菜單品項，無法復原。"):
                 updated_menus_df = menus_df[menus_df['店家名稱'] != st.session_state.delete_store_selectbox]
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功刪除店家：**{st.session_state.delete_store_selectbox}**")
-                # 刪除後重置 session_state
-                st.session_state.selected_menu_store = None
-                st.session_state.delete_store_selectbox = None
+                # 刪除後手動清除 session_state，確保下一次渲染不會出錯
+                if "delete_store_selectbox" in st.session_state:
+                    del st.session_state["delete_store_selectbox"]
                 st.rerun()
         else:
             st.info("目前沒有可供刪除的店家。")
 
 
     with tab2:
-        switch_tab("tab2")
         st.header("⚙️ 今日訂餐設定")
         
         selected_store_by_admin = load_store_config()
@@ -233,7 +224,6 @@ else:
             st.rerun()
 
     with tab3:
-        switch_tab("tab3")
         st.header("📊 訂單總覽")
         
         orders_df = load_orders_from_db()
