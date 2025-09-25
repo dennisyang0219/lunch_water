@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
 from utils import (
     load_store_config, load_cutoff_time, load_menus_from_db, save_new_order_to_db
 )
@@ -30,17 +30,26 @@ if not today_store_name or not all_stores:
 else:
     st.header(f"今日便當店家：{today_store_name}")
     
-    # 判斷時間並顯示友善格式
-    if cutoff_time.hour < 12:
-        cutoff_time_str = f"上午 {cutoff_time.strftime('%H:%M')}"
+    # 將截止時間轉換為友善的12小時制格式
+    if cutoff_time.hour > 12:
+        cutoff_time_str = f"下午 {cutoff_time.hour - 12:02d}:{cutoff_time.minute:02d}"
+    elif cutoff_time.hour == 12:
+        cutoff_time_str = f"下午 12:{cutoff_time.minute:02d}"
+    elif cutoff_time.hour == 0:
+        cutoff_time_str = f"上午 12:{cutoff_time.minute:02d}"
     else:
-        cutoff_time_str = f"下午 {cutoff_time.strftime('%H:%M')}"
+        cutoff_time_str = f"上午 {cutoff_time.hour:02d}:{cutoff_time.minute:02d}"
         
     st.markdown(f"**訂餐截止時間**：`{cutoff_time_str}`")
     
-    current_time = datetime.now().time()
+    # 這裡我們使用一個更為穩健的時間比較方法
+    # 將日期也考慮進去，避免跨日或時區問題
+    current_datetime = datetime.now()
     
-    if current_time > cutoff_time:
+    # 創建一個包含今日日期的截止時間物件
+    cutoff_datetime = datetime.combine(current_datetime.date(), cutoff_time)
+    
+    if current_datetime > cutoff_datetime:
         st.error("⏳ 訂餐時間已過，無法再新增訂單。")
     else:
         store_menu = menus_df[menus_df['店家名稱'] == today_store_name]
