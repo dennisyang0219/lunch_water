@@ -46,22 +46,22 @@ else:
     with tab1:
         st.header("🏡 菜單與店家管理")
         
+        # 簡化新增店家流程，只留下名稱
         st.subheader("新增店家")
         new_store_name = st.text_input("請輸入新店家名稱", key="new_store_name_input")
-        new_store_address = st.text_input("請輸入店家地址", key="new_store_address_input")
-        new_store_phone = st.text_input("請輸入店家電話", key="new_store_phone_input")
         
         if st.button("新增店家"):
             if new_store_name and new_store_name not in all_store_names:
                 new_row = pd.DataFrame([{'店家名稱': new_store_name, 
-                                        '店家地址': new_store_address,
-                                        '店家電話': new_store_phone,
+                                        '店家地址': '',
+                                        '店家電話': '',
                                         '便當品項': '無', 
                                         '價格': 0}])
                 updated_menus_df = pd.concat([menus_df, new_row], ignore_index=True)
                 update_menus_in_db(updated_menus_df)
                 st.success(f"✅ 已成功新增店家：**{new_store_name}**")
                 
+                # 新增店家後自動跳轉到其編輯介面
                 st.session_state.selected_menu_store = new_store_name
                 
                 menus_df = load_menus_from_db()
@@ -75,6 +75,7 @@ else:
         
         st.markdown("---")
         
+        # 編輯店家菜單與地址電話
         st.subheader("編輯店家菜單")
         
         if "selected_menu_store" not in st.session_state and all_store_names:
