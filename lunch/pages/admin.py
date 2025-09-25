@@ -13,7 +13,7 @@ st.markdown("---")
 
 # 使用 session_state 來管理登入狀態
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+    st.session_in.logged_in = False
     
 # 使用 session_state 來儲存選定的店家
 if "selected_menu_store" not in st.session_state:
