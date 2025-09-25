@@ -1,160 +1,180 @@
-import pandas as pd
-import os
-from datetime import time
-import sqlite3
 import streamlit as st
+import pandas as pd
+import sqlite3
+import os
+from datetime import time, datetime
 
-# 資料庫檔案
-DB_FILE = "lunch.db"
-# 其他檔案路徑
-STORE_CONFIG_FILE = "store_config.txt"
-CUTOFF_TIME_FILE = "cutoff_time.txt"
+DB_PATH = 'data/lunch_orders.db'
 
-# 輔助函數：初始化資料庫
-def _initialize_database(conn):
+# 確保資料庫目錄存在
+os.makedirs('data', exist_ok=True)
+
+def init_db():
+    """初始化資料庫並創建表格（如果不存在）"""
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""
+    
+    c.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY,
-            姓名 TEXT NOT NULL,
-            店家 TEXT NOT NULL,
-            便當品項 TEXT NOT NULL,
-            價格 INTEGER NOT NULL,
-            已付款 BOOLEAN DEFAULT FALSE,
-            選取 BOOLEAN DEFAULT FALSE,
-            刪除 BOOLEAN DEFAULT FALSE,
-            備註 TEXT DEFAULT ''
+            姓名 TEXT,
+            店家名稱 TEXT,
+            便當品項 TEXT,
+            價格 INTEGER,
+            數量 INTEGER,
+            備註 TEXT,
+            時間 TEXT,
+            已付款 BOOLEAN,
+            選取 BOOLEAN,
+            刪除 BOOLEAN
         )
-    """)
-    c.execute("""
+    ''')
+    
+    c.execute('''
         CREATE TABLE IF NOT EXISTS menus (
             id INTEGER PRIMARY KEY,
-            店家名稱 TEXT NOT NULL,
+            店家名稱 TEXT,
             店家地址 TEXT,
             店家電話 TEXT,
-            便當品項 TEXT NOT NULL,
-            價格 INTEGER NOT NULL,
-            UNIQUE(店家名稱, 便當品項) ON CONFLICT REPLACE
+            便當品項 TEXT,
+            價格 INTEGER
         )
-    """)
-    conn.commit()
-
-# 輔助函數：連接資料庫 (使用 Streamlit 的單例模式)
-@st.cache_resource
-def get_db_connection():
-    try:
-        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-        _initialize_database(conn)
-        return conn
-    except Exception as e:
-        st.error(f"無法連線到資料庫: {e}")
-        return None
-
-# 輔助函數：檢查並重新開啟資料庫連接
-def _check_db_connection():
-    conn = get_db_connection()
-    if conn:
-        try:
-            conn.cursor().execute("SELECT 1")
-            return conn
-        except (sqlite3.ProgrammingError, sqlite3.OperationalError):
-            st.cache_resource.clear()
-            conn = get_db_connection()
-            return conn
-    return None
-
-# 輔助函數：從資料庫讀取所有訂單
-@st.cache_data(ttl=60)
-def load_orders_from_db():
-    conn = _check_db_connection()
-    if conn is None:
-        return pd.DataFrame()
-    df = pd.read_sql_query("SELECT * FROM orders", conn)
-    if '已付款' in df.columns:
-        df['已付款'] = df['已付款'].astype(bool)
-    if '選取' in df.columns:
-        df['選取'] = df['選取'].astype(bool)
-    if '刪除' in df.columns:
-        df['刪除'] = df['刪除'].astype(bool)
-    return df
-
-# 輔助函數：從資料庫讀取所有菜單
-@st.cache_data(ttl=60)
-def load_menus_from_db():
-    conn = _check_db_connection()
-    if conn is None:
-        return pd.DataFrame()
-    df = pd.read_sql_query("SELECT * FROM menus", conn)
-    return df
-
-# 輔助函數：儲存新的訂單到資料庫
-def save_new_order_to_db(name, store, item, price):
-    conn = _check_db_connection()
-    if conn is None: return
-    c = conn.cursor()
-    c.execute("INSERT INTO orders (姓名, 店家, 便當品項, 價格) VALUES (?, ?, ?, ?)",
-              (name, store, item, price))
-    conn.commit()
-    load_orders_from_db.clear()
+    ''')
     
-# 輔助函數：更新資料庫中的訂單
-def update_orders_in_db(df):
-    conn = _check_db_connection()
-    if conn is None: return
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS config (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+# 初始化資料庫
+init_db()
+
+# --- 訂單相關函數 ---
+
+def load_orders_from_db():
+    """從資料庫讀取所有訂單"""
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("SELECT * FROM orders", conn)
+    conn.close()
+    if df.empty:
+        return pd.DataFrame(columns=['id', '姓名', '店家名稱', '便當品項', '價格', '數量', '備註', '時間', '已付款', '選取', '刪除'])
+    return df
+
+def save_orders_to_db(df):
+    """將訂單 DataFrame 寫入資料庫，覆蓋舊資料"""
+    conn = sqlite3.connect(DB_PATH)
     df.to_sql('orders', conn, if_exists='replace', index=False)
-    conn.commit()
-    load_orders_from_db.clear()
+    conn.close()
 
-# 輔助函數：從資料庫中刪除訂單
-def delete_orders_from_db(order_ids):
-    conn = _check_db_connection()
-    if conn is None: return
+def save_new_order_to_db(name, store_name, item, price):
+    """將單筆新訂單添加到資料庫"""
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("DELETE FROM orders WHERE id IN ({})".format(','.join('?'*len(order_ids))), order_ids)
+    
+    # 確保價格是數字，避免寫入錯誤值
+    try:
+        price = int(price)
+    except (ValueError, TypeError):
+        price = 0
+        
+    order_data = (name, store_name, item, price, 1, '', datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0, 0, 0)
+    c.execute("INSERT INTO orders (姓名, 店家名稱, 便當品項, 價格, 數量, 備註, 時間, 已付款, 選取, 刪除) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", order_data)
+    
     conn.commit()
-    load_orders_from_db.clear()
+    conn.close()
 
-# 輔助函數：更新資料庫中的菜單
-def update_menus_in_db(df):
-    conn = _check_db_connection()
-    if conn is None: return
-    df.to_sql('menus', conn, if_exists='replace', index=False)
-    conn.commit()
-    load_menus_from_db.clear()
+def update_orders_in_db(df):
+    """更新整個訂單表格"""
+    conn = sqlite3.connect(DB_PATH)
+    df.to_sql('orders', conn, if_exists='replace', index=False)
+    conn.close()
 
-# 輔助函數：清除所有訂單
 def clear_all_orders_in_db():
-    conn = _check_db_connection()
-    if conn is None: return
+    """清除所有訂單資料"""
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("DELETE FROM orders")
     conn.commit()
-    load_orders_from_db.clear()
-    
-# 輔助函數：儲存店家設定到檔案
-def save_store_config(store_name):
-    with open(STORE_CONFIG_FILE, "w", encoding="utf-8") as f:
-        f.write(store_name)
+    conn.close()
 
-# 輔助函數：從檔案讀取店家設定
+def delete_orders_from_db(order_ids):
+    """根據 ID 刪除訂單"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.executemany("DELETE FROM orders WHERE id = ?", [(oid,) for oid in order_ids])
+    conn.commit()
+    conn.close()
+
+# --- 菜單相關函數 ---
+
+def load_menus_from_db():
+    """從資料庫讀取所有菜單"""
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("SELECT * FROM menus", conn)
+    conn.close()
+    if df.empty:
+        return pd.DataFrame(columns=['id', '店家名稱', '店家地址', '店家電話', '便當品項', '價格'])
+    return df
+
+def update_menus_in_db(df):
+    """更新整個菜單表格"""
+    conn = sqlite3.connect(DB_PATH)
+    df.to_sql('menus', conn, if_exists='replace', index=False)
+    conn.close()
+
+def fetch_order_count(user_name):
+    """查詢某使用者的訂單數量"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM orders WHERE 姓名 = ?", (user_name,))
+    count = c.fetchone()[0]
+    conn.close()
+    return count
+
+# --- 設定相關函數 ---
+
 def load_store_config():
-    if os.path.exists(STORE_CONFIG_FILE):
-        with open(STORE_CONFIG_FILE, "r", encoding="utf-8") as f:
-            return f.read().strip()
-    return None
+    """讀取今日店家設定"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT value FROM config WHERE key = 'today_store'")
+    result = c.fetchone()
+    conn.close()
+    return result[0] if result else None
 
-# 輔助函數：儲存截止時間到檔案
-def save_cutoff_time(time_obj):
-    with open(CUTOFF_TIME_FILE, "w", encoding="utf-8") as f:
-        f.write(time_obj.strftime("%H:%M:%S"))
-
-# 輔助函數：從檔案讀取截止時間
+def save_store_config(store_name):
+    """保存今日店家設定"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("REPLACE INTO config (key, value) VALUES ('today_store', ?)", (store_name,))
+    conn.commit()
+    conn.close()
+    
 def load_cutoff_time():
-    if os.path.exists(CUTOFF_TIME_FILE):
-        with open(CUTOFF_TIME_FILE, "r", encoding="utf-8") as f:
-            time_str = f.read().strip()
-            try:
-                return time.fromisoformat(time_str)
-            except ValueError:
-                return time(12, 0)
-    return time(12, 0)
+    """讀取截止時間設定"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT value FROM config WHERE key = 'cutoff_time'")
+    result = c.fetchone()
+    conn.close()
+    if result and result[0]:
+        try:
+            h, m = map(int, result[0].split(':'))
+            return time(h, m)
+        except (ValueError, IndexError):
+            return time(8, 50)
+    return time(8, 50)
+
+def save_cutoff_time(cutoff_time):
+    """保存截止時間設定"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    time_str = cutoff_time.strftime("%H:%M")
+    c.execute("REPLACE INTO config (key, value) VALUES ('cutoff_time', ?)", (time_str,))
+    conn.commit()
+    conn.close()
