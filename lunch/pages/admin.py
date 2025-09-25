@@ -157,6 +157,7 @@ else:
 
         # 刪除店家
         st.subheader("刪除店家")
+        # 最終保護措施：只有在有店家時才渲染 selectbox
         if all_store_names:
             delete_store_index = 0
             if st.session_state.delete_store_selectbox and st.session_state.delete_store_selectbox in all_store_names:
